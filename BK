@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Caffeine Rush: Bear's All-Nighter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #222;
+            font-family: 'Press Start 2P', cursive;
+            touch-action: none; /* Prevent pull-to-refresh on mobile */
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* KEY: Lets clicks pass through to game/screens */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud {
+            padding: 20px;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        /* Added Pause Button Style */
+        #pause-btn {
+            background: #444;
+            color: white;
+            border: 2px solid white;
+            padding: 10px 15px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px #000;
+            margin-left: 10px;
+            pointer-events: auto; /* Re-enable clicks for button */
+        }
+        #pause-btn:active {
+            box-shadow: 0 2px #000;
+            transform: translateY(2px);
+        }
+
+        /* NEW ENERGY BAR DESIGN */
+        .energy-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .energy-container {
+            width: 150px; 
+            height: 18px; 
+            background: #222;
+            border: 2px solid #fff; 
+            position: relative;
+            transform: skewX(-15deg); 
+            box-shadow: 3px 3px 0px rgba(0,0,0,0.5); 
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .energy-bar {
+            height: 100%;
+            width: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                #ffff00,
+                #ffff00 10px,
+                #d4af37 10px,
+                #d4af37 20px
+            );
+            box-shadow: 0 0 15px #ffff00;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+        
+        .energy-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .energy-bar.critical {
+            background: repeating-linear-gradient(
+                45deg,
+                #ff0000,
+                #ff0000 10px,
+                #990000 10px,
+                #990000 20px
+            );
+            box-shadow: 0 0 20px #ff0000;
+            animation: pulse-critical 0.5s infinite alternate;
+        }
+
+        @keyframes pulse-critical {
+            0% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .energy-label {
+            font-size: 10px; 
+            color: #ffff00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-left: 5px;
+            text-shadow: 1px 1px 0 #000, 0 0 10px #ffff00;
+        }
+
+        #start-screen, #game-over-screen, #pause-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            pointer-events: auto; /* Ensure clicks register here */
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #00ff00;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            padding: 0 20px;
+        }
+
+        p {
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #ccc;
+            padding: 0 20px;
+            max-width: 600px;
+        }
+
+        button {
+            background: #00ff00;
+            color: #000;
+            border: 4px solid #004400;
+            padding: 15px 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 6px #004400;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            box-shadow: 0 2px #004400;
+            transform: translateY(4px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #score-display {
+            font-size: 14px;
+            color: white;
+        }
+        
+        .high-score-label {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        /* FAKE AI TEXT STYLES */
+        .ai-verdict {
+            font-family: 'Courier New', monospace;
+            background: #222;
+            border: 2px dashed #00ff00;
+            padding: 15px;
+            margin: 20px;
+            max-width: 80%;
+            color: #00ff00;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 0 10px #004400;
+            text-align: left;
+            min-height: 40px;
+            position: relative;
+        }
+        .ai-verdict::before {
+            content: "✨ PARENTAL REPORT CARD ✨";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: #222;
+            padding: 0 5px;
+            font-weight: bold;
+            color: #ffff00;
+        }
+
+        /* CHARACTER SELECT STYLES */
+        .char-select-container {
+            margin-bottom: 30px;
+        }
+        .bear-options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .bear-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 4px solid #444;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .bear-option:hover {
+            transform: scale(1.1);
+        }
+        .bear-option.selected {
+            border-color: #fff;
+            box-shadow: 0 0 15px #fff;
+            transform: scale(1.2);
+        }
+        .bear-option::before, .bear-option::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: inherit;
+            z-index: -1;
+        }
+        .bear-option::before { left: -2px; }
+        .bear-option::after { right: -2px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="hud">
+            <div class="energy-wrapper">
+                <div class="energy-label">⚡ CAFFEINE LEVEL</div>
+                <div class="energy-container">
+                    <div id="energy-bar" class="energy-bar"></div>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                <div class="high-score-label">HIGH SCORE: <span id="high-score-val" style="color:#00ff00">0</span></div>
+                <div id="score-board">SCORE: <span id="score-val">0</span></div>
+                <button id="pause-btn">PAUSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1>CAFFEINE RUSH:<br>THE ALL-NIGHTER</h1>
+        <p>You need to stay awake.<br>Collect Energy Drinks (🥤).<br>Avoid the Parents (👴👵) or get GROUNDED!</p>
+        
+        <div class="char-select-container">
+            <p style="color: #fff; margin-bottom: 10px;">CHOOSE YOUR BEAR:</p>
+            <div class="bear-options">
+                <div class="bear-option selected" data-color="#00cc44" style="background: #00cc44;"></div>
+                <div class="bear-option" data-color="#8B4513" style="background: #8B4513;"></div>
+                <div class="bear-option" data-color="#0066ff" style="background: #0066ff;"></div>
+                <div class="bear-option" data-color="#ff66b2" style="background: #ff66b2;"></div>
+            </div>
+        </div>
+
+        <button id="start-btn">START GAME</button>
+    </div>
+
+    <div id="pause-screen" class="hidden">
+        <h1>PAUSED</h1>
+        <p>Take a breath.</p>
+        <button id="resume-btn">RESUME</button>
+        <button id="quit-btn" style="margin-top: 15px; background: #ff4444; border-color: #880000;">MAIN MENU</button>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1 style="color: #ff4444;">YOU GOT GROUNDED!</h1>
+        <p id="death-reason">Ran out of energy...</p>
+        
+        <!-- Verdict Box -->
+        <div id="ai-verdict-box" class="ai-verdict">Generating parental lecture...</div>
+        
+        <p>Final Score: <span id="final-score">0</span></p>
+        <button id="restart-btn">TRY AGAIN</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- OFFLINE DATA SETUP ---
+        // Pre-written nags since we are offline
+        const parentNags = [
+            "Go to bed!", "It's a school night!", "Stop jumping!", 
+            "Eat your veggies!", "Where are your pants?", "Turn that noise down!",
+            "Did you do homework?", "Clean your room!"
+        ];
+
+        // Pre-written grounded notes
+        const groundedNotes = [
+            "I'm not mad, just disappointed. Okay, I'm a little mad about the score.",
+            "You call that an attempt? Go to your room and think about your agility.",
+            "Grounded for 100 years! Or until you beat the high score.",
+            "I expected more from a bear with that much caffeine.",
+            "Bedtime was 3 hours ago. This performance is unacceptable.",
+            "If you dodged chores like you dodge parents, the house would be a mess. Oh wait, it is."
+        ];
+
+        function getOfflineVerdict() {
+            return groundedNotes[Math.floor(Math.random() * groundedNotes.length)];
+        }
+
+        // --- LOCAL STORAGE HIGH SCORE ---
+        let highScore = localStorage.getItem('caffeine_rush_highscore') || 0;
+        const highScoreEl = document.getElementById('high-score-val');
+        highScoreEl.innerText = highScore;
+
+        function saveLocalHighScore(newScore) {
+            localStorage.setItem('caffeine_rush_highscore', newScore);
+            console.log("High score saved locally!");
+        }
+
+        // --- GAME LOGIC ---
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const energyBar = document.getElementById('energy-bar');
+        const scoreVal = document.getElementById('score-val');
+        const finalScoreVal = document.getElementById('final-score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const pauseScreen = document.getElementById('pause-screen');
+        const deathReason = document.getElementById('death-reason');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resumeBtn = document.getElementById('resume-btn');
+        const quitBtn = document.getElementById('quit-btn');
+        const verdictBox = document.getElementById('ai-verdict-box');
+
+        // Character Selection Logic
+        let selectedColor = '#00cc44'; // Default Green
+        const bearOptions = document.querySelectorAll('.bear-option');
+
+        bearOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove selected class from all
+                bearOptions.forEach(opt => opt.classList.remove('selected'));
+                // Add to clicked
+                option.classList.add('selected');
+                // Update color
+                selectedColor = option.dataset.color;
+            });
+        });
+
+        // Game State
+        let isPlaying = false;
+        let isPaused = false;
+        let score = 0;
+        let frames = 0;
+        let energy = 100;
+        let difficulty = 1;
+        
+        // New State Variables
+        let scoreMultiplier = 1;
+        let multiplierTimer = 0; // Frames remaining for 2x
+        let slowTimer = 0;       // Frames remaining for slow motion
+        let slowCooldown = 0;    // Cooldown for slow drink spawn
+
+        // Player
+        const player = {
+            x: 0,
+            y: 0,
+            radius: 20,
+            maxSpeed: 2.8, 
+            vx: 0,
+            vy: 0,
+            friction: 0.85, 
+            acceleration: 0.8, 
+            color: '#00cc44',
+            shield: 0
+        };
+
+        // Inputs
+        const keys = {
+            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+            w: false, s: false, a: false, d: false, W: false, S: false, A: false, D: false
+        };
+
+        const mouse = { x: null, y: null, isDown: false };
+
+        // Entities
+        let enemies = [];
+        let drinks = [];
+        let particles = [];
+        let shockwaves = []; 
+
+        // Resize Canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (!isPlaying) {
+                player.x = canvas.width / 2;
+                player.y = canvas.height / 2;
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Input Listeners
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            if (e.key === 'p' || e.key === 'P') togglePause();
+        });
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        // Touch/Mouse for Mobile & Desktop drag
+        const handleMove = (x, y) => {
+            if (!isPlaying || isPaused) return;
+            const dx = x - player.x;
+            const dy = y - player.y;
+            const angle = Math.atan2(dy, dx);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Only move if finger is somewhat far from player to prevent jitter
+            if (dist > 10) {
+                player.vx += Math.cos(angle) * player.acceleration * 0.8;
+                player.vy += Math.sin(angle) * player.acceleration * 0.8;
+            }
+        };
+
+        window.addEventListener('touchstart', e => {
+            mouse.isDown = true;
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+
+        window.addEventListener('touchmove', e => {
+            e.preventDefault(); // Prevent scrolling
+            if (mouse.isDown) {
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchend', () => mouse.isDown = false);
+        window.addEventListener('mousedown', e => {
+            mouse.isDown = true;
+            handleMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', e => {
+            if (mouse.isDown) handleMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', () => mouse.isDown = false);
+
+
+        // --- Game Logic ---
+
+        function spawnEnemy() {
+            const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+            let x, y;
+            const size = 18; 
+            const buffer = 50;
+
+            if (edge === 0) { x = Math.random() * canvas.width; y = -buffer; }
+            else if (edge === 1) { x = canvas.width + buffer; y = Math.random() * canvas.height; }
+            else if (edge === 2) { x = Math.random() * canvas.width; y = canvas.height + buffer; }
+            else { x = -buffer; y = Math.random() * canvas.height; }
+
+            // Speed based on SCORE.
+            const maxBonus = 2.0;
+            const bonus = Math.min(maxBonus, score / 5000);
+            let speed = (Math.random() * 0.4 + 0.3) + bonus;
+
+            // Brown Bear Hard Mode: Double Speed
+            if (player.color === '#8B4513') {
+                speed *= 2;
+            }
+
+            // Assign a random nag from the list
+            const nag = parentNags[Math.floor(Math.random() * parentNags.length)];
+
+            // Add a random offset for the wobble effect
+            enemies.push({ 
+                x, y, size, speed, angle: 0, 
+                wobbleOffset: Math.random() * Math.PI * 2,
+                nag: nag,
+                nagTimer: Math.random() * 200 // Random offset for when they speak
+            });
+        }
+
+        function spawnDrink(forcedType = null) {
+            const margin = 50;
+            const x = Math.random() * (canvas.width - margin * 2) + margin;
+            const y = Math.random() * (canvas.height - margin * 2) + margin;
+            
+            // Randomize Drink Type
+            let type = 'normal';
+            
+            if (forcedType) {
+                type = forcedType;
+            } else {
+                const rand = Math.random();
+                
+                if (rand > 0.95) { // 5% chance for Mega
+                    type = 'mega';
+                } else if (rand > 0.90) { // 5% chance for Shield (Reduced slightly)
+                    type = 'shield';
+                } else if (rand > 0.85 && slowCooldown <= 0) { // Check Cooldown
+                    type = 'slow';
+                }
+            }
+
+            // Brown Bear Hard Mode: NO Power Drops
+            if (player.color === '#8B4513') {
+                type = 'watermelon';
+            }
+
+            // Life increased to 1000 frames (approx 16 seconds)
+            drinks.push({ x, y, size: 20, life: 1000, scale: 0, type }); 
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    life: 30 + Math.random() * 20,
+                    color: color,
+                    size: Math.random() * 5 + 2
+                });
+            }
+        }
+
+        function triggerMegaBlast() {
+            // Visual Effect
+            shockwaves.push({ r: 0, alpha: 1 });
+            
+            // Clear all enemies
+            enemies.forEach(e => {
+                createParticles(e.x, e.y, '#ff4444', 15);
+                score += 50 * scoreMultiplier; // Apply multiplier to blast too
+            });
+            enemies = [];
+            scoreVal.innerText = score;
+        }
+
+        function togglePause() {
+            if (!isPlaying || gameOverScreen.classList.contains('hidden') === false) return;
+            
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseScreen.classList.remove('hidden');
+            } else {
+                pauseScreen.classList.add('hidden');
+                // No double animate call
+            }
+        }
+
+        function quitToMenu() {
+            isPlaying = false;
+            isPaused = false;
+            startScreen.classList.remove('hidden');
+            pauseScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            
+            // Clear entities for visual cleanliness
+            enemies = [];
+            drinks = [];
+            particles = [];
+            shockwaves = [];
+            
+            // Redraw background
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function resetGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.vx = 0;
+            player.vy = 0;
+            player.shield = 0;
+            player.color = selectedColor; 
+            
+            energy = 100;
+            score = 0;
+            frames = 0;
+            difficulty = 1;
+            
+            // Reset Effects
+            scoreMultiplier = 1;
+            multiplierTimer = 0;
+            slowTimer = 0;
+            slowCooldown = 0;
+            
+            enemies = [];
+            drinks = [];
+            particles = [];
+            shockwaves = [];
+            scoreVal.innerText = '0';
+            energyBar.style.width = '100%';
+            isPlaying = true;
+            isPaused = false;
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            pauseScreen.classList.add('hidden');
+            
+            // Spawn initial items
+            spawnDrink();
+            spawnDrink();
+            
+            animate();
+        }
+
+        function gameOver(reason) {
+            isPlaying = false;
+            finalScoreVal.innerText = score;
+            deathReason.innerText = reason;
+            
+            // Custom Message for Brown Bear
+            const title = document.querySelector('#game-over-screen h1');
+            if (player.color === '#8B4513') {
+                title.innerText = "Sorry Buddy, back to the field!";
+            } else {
+                title.innerText = "YOU GOT GROUNDED!";
+            }
+
+            // Get offline verdict
+            verdictBox.innerText = getOfflineVerdict();
+
+            gameOverScreen.classList.remove('hidden');
+            
+            // Check High Score
+            if (score > highScore) {
+                highScore = score;
+                highScoreEl.innerText = highScore;
+                saveLocalHighScore(highScore);
+            }
+        }
+
+        function update() {
+            if (isPaused) return;
+
+            frames++;
+            
+            // --- Handle Timers ---
+            if (multiplierTimer > 0) {
+                multiplierTimer--;
+                if (multiplierTimer === 0) scoreMultiplier = 1;
+            }
+            if (slowTimer > 0) slowTimer--;
+            if (slowCooldown > 0) slowCooldown--; // Handle Cooldown
+
+            // Player Movement (Keyboard)
+            if (keys.ArrowUp || keys.w || keys.W) player.vy -= player.acceleration;
+            if (keys.ArrowDown || keys.s || keys.S) player.vy += player.acceleration;
+            if (keys.ArrowLeft || keys.a || keys.A) player.vx -= player.acceleration;
+            if (keys.ArrowRight || keys.d || keys.D) player.vx += player.acceleration;
+
+            // Physics with Max Speed Cap
+            player.vx *= player.friction;
+            player.vy *= player.friction;
+
+            // Cap Speed
+            const currentSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+            if (currentSpeed > player.maxSpeed) {
+                const ratio = player.maxSpeed / currentSpeed;
+                player.vx *= ratio;
+                player.vy *= ratio;
+            }
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Boundaries
+            if (player.x < player.radius) { player.x = player.radius; player.vx *= -0.5; }
+            if (player.x > canvas.width - player.radius) { player.x = canvas.width - player.radius; player.vx *= -0.5; }
+            if (player.y < player.radius) { player.y = player.radius; player.vy *= -0.5; }
+            if (player.y > canvas.height - player.radius) { player.y = canvas.height - player.radius; player.vy *= -0.5; }
+
+            // Energy Decay
+            energy -= 0.05 + (difficulty * 0.003);
+            if (energy <= 0) {
+                energy = 0;
+                gameOver("You fell asleep standing up...");
+                return;
+            }
+            energyBar.style.width = energy + '%';
+            
+            // Handle Critical Visuals
+            if (energy < 25) {
+                energyBar.classList.add('critical');
+                document.querySelector('.energy-label').style.color = '#ff0000';
+                document.querySelector('.energy-label').style.textShadow = '2px 2px 0 #000, 0 0 10px #ff0000';
+            } else {
+                energyBar.classList.remove('critical');
+                document.querySelector('.energy-label').style.color = '#ffff00';
+                document.querySelector('.energy-label').style.textShadow = '2px 2px 0 #000, 0 0 10px #ffff00';
+            }
+
+            // Spawners
+            if (frames % Math.max(50, 140 - difficulty) === 0) spawnEnemy();
+            if (frames % 120 === 0) spawnDrink(); // Regular spawn (2 seconds)
+            
+            // Multiplier Drop: Every 20 seconds (1200 frames)
+            if (frames % 1200 === 0) spawnDrink('multiplier');
+
+            // Update Drinks
+            for (let i = drinks.length - 1; i >= 0; i--) {
+                let d = drinks[i];
+                d.life--;
+                
+                // Pop-in effect
+                if(d.scale < 1) d.scale += 0.1;
+
+                // Collision
+                const dx = player.x - d.x;
+                const dy = player.y - d.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist < player.radius + d.size) {
+                    // Apply effects based on type
+                    if (d.type === 'shield') {
+                        // Adds 3 shield points, stacking up to a max of 5
+                        player.shield = Math.min(5, player.shield + 3); 
+                        createParticles(d.x, d.y, '#00ccff', 15);
+                        score += 50 * scoreMultiplier;
+                    } else if (d.type === 'mega') {
+                        triggerMegaBlast();
+                    } else if (d.type === 'multiplier') {
+                        scoreMultiplier = 2;
+                        multiplierTimer = 300; // 5 seconds
+                        createParticles(d.x, d.y, '#FFD700', 20);
+                        score += 50 * scoreMultiplier;
+                    } else if (d.type === 'slow') {
+                        slowTimer = 900; // 15 seconds
+                        slowCooldown = 4500; // 15s active + 60s cooldown
+                        createParticles(d.x, d.y, '#00FFFF', 20);
+                        score += 50 * scoreMultiplier;
+                    } else {
+                        // Normal drink (Score reduced to 50)
+                        energy = Math.min(100, energy + 20); 
+                        score += 50 * scoreMultiplier; // Apply multiplier
+                        createParticles(d.x, d.y, '#ffff00', 10);
+                    }
+                    
+                    scoreVal.innerText = score;
+                    drinks.splice(i, 1);
+                } else if (d.life <= 0) {
+                    drinks.splice(i, 1);
+                }
+            }
+
+            // Update Enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                
+                // Move towards player
+                const dx = player.x - e.x;
+                const dy = player.y - e.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                let angle = Math.atan2(dy, dx);
+                angle += Math.sin(frames * 0.05 + e.wobbleOffset) * 0.5;
+
+                // APPLY SLOW EFFECT if active
+                let effectiveSpeed = e.speed;
+                if (slowTimer > 0) effectiveSpeed *= 0.5;
+
+                e.x += Math.cos(angle) * effectiveSpeed;
+                e.y += Math.sin(angle) * effectiveSpeed;
+
+                // Collision
+                if (dist < player.radius + e.size - 5) {
+                    if (player.shield > 0) {
+                        player.shield--;
+                        createParticles(e.x, e.y, '#00ccff', 20); 
+                        createParticles(e.x, e.y, '#ff0000', 10); 
+                        enemies.splice(i, 1);
+                    } else if (slowTimer > 0) {
+                        // FREEZE INVINCIBILITY (RAMMING)
+                        // Destroy enemy immediately
+                        createParticles(e.x, e.y, '#00FFFF', 20); // Cyan smash
+                        createParticles(e.x, e.y, '#ff0000', 10);
+                        enemies.splice(i, 1);
+                        score += 150 * scoreMultiplier; // Bonus points for smashing
+                        scoreVal.innerText = score;
+                    } else {
+                        if (player.color === '#8B4513') {
+                            gameOver("Master caught you!");
+                        } else {
+                            gameOver("Parent caught you! GROUNDED!");
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                p.size *= 0.95;
+                if(p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Update Shockwaves
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                let s = shockwaves[i];
+                s.r += 20; 
+                s.alpha -= 0.05;
+                if(s.alpha <= 0) shockwaves.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Shockwaves
+            shockwaves.forEach(s => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, s.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${s.alpha})`;
+                ctx.lineWidth = 10;
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+            // Draw Drinks
+            drinks.forEach(d => {
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                ctx.scale(d.scale, d.scale);
+                
+                // Bobbing animation - ONLY for normal/shield/mega
+                if (d.type !== 'multiplier' && d.type !== 'slow') {
+                    const bob = Math.sin(frames * 0.1) * 5;
+                    ctx.translate(0, bob);
+                }
+                
+                // --- DRAW CAN ---
+                const w = 24;
+                const h = 36;
+                
+                let bodyColor, lidColor, label;
+                
+                if (d.type === 'shield') {
+                    bodyColor = '#0077aa';
+                    lidColor = '#00ccff';
+                    label = 'S';
+                } else if (d.type === 'mega') {
+                    bodyColor = '#aa00aa';
+                    lidColor = '#ff00ff';
+                    label = 'M';
+                } else if (d.type === 'multiplier') {
+                    bodyColor = '#DAA520'; // GoldenRod
+                    lidColor = '#FFD700';  // Gold
+                    label = 'X2';
+                } else if (d.type === 'slow') {
+                    bodyColor = '#008B8B'; // Dark Cyan
+                    lidColor = '#00FFFF';  // Cyan
+                    label = '❄️';
+                } else {
+                    bodyColor = '#222';
+                    lidColor = '#00ff00';
+                    label = 'E';
+                }
+
+                // --- SPECIAL GLOW (Aura) ---
+                if (d.type === 'multiplier' || d.type === 'slow') {
+                    ctx.save();
+                    ctx.shadowColor = lidColor;
+                    ctx.shadowBlur = 15;
+                    ctx.strokeStyle = lidColor; // Changed to strokeStyle
+                    ctx.lineWidth = 3;          // Thickness of the ring
+                    ctx.globalAlpha = 0.6 + Math.sin(frames * 0.1) * 0.4; // Pulsing opacity
+                    ctx.beginPath();
+                    
+                    // Draw rounded rectangle for glow to match can shape
+                    const gw = w + 16; // Glow width
+                    const gh = h + 16; // Glow height
+                    const r = 12;      // Corner radius
+                    
+                    // Use roundRect if available, otherwise fallback to simple rect
+                    if (ctx.roundRect) {
+                        ctx.roundRect(-gw/2, -gh/2, gw, gh, r);
+                    } else {
+                        ctx.rect(-gw/2, -gh/2, gw, gh);
+                    }
+
+                    ctx.stroke(); // Stroke instead of fill
+                    ctx.restore();
+                }
+
+                if (d.type === 'normal') {
+                    // --- DRAW RED BULL DESIGN (Clean) ---
+                    
+                    const blue = '#102d78'; 
+                    const silver = '#d4d8db'; 
+                    const s = w / 2; // Split can into 2x2 grid
+
+                    // Create a temporary canvas for the pattern
+                    const pCanvas = document.createElement('canvas');
+                    const pCtx = pCanvas.getContext('2d');
+                    pCanvas.width = s * 2; 
+                    pCanvas.height = s * 2;
+
+                    // Draw 2x2 checkerboard
+                    pCtx.fillStyle = blue;
+                    pCtx.fillRect(0, 0, s, s);
+                    pCtx.fillStyle = silver;
+                    pCtx.fillRect(s, 0, s, s);
+                    pCtx.fillStyle = silver;
+                    pCtx.fillRect(0, s, s, s);
+                    pCtx.fillStyle = blue;
+                    pCtx.fillRect(s, s, s, s);
+
+                    const pattern = ctx.createPattern(pCanvas, 'no-repeat');
+                    const matrix = new DOMMatrix();
+                    matrix.translateSelf(-w/2, -h/2); 
+                    pattern.setTransform(matrix);
+
+                    // Fill can body with pattern
+                    ctx.fillStyle = pattern;
+                    ctx.fillRect(-w/2, -h/2, w, h);
+
+                    // Can Body Highlight
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.fillRect(-w/2 + 2, -h/2, 4, h);
+
+                    // Can Top
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.strokeStyle = '#999';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -h/2, w/2, 5, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Can Bottom
+                    ctx.fillStyle = blue;
+                    ctx.beginPath();
+                    ctx.ellipse(0, h/2, w/2, 5, 0, 0, Math.PI, 0); 
+                    ctx.fill();
+                    
+                } else if (d.type === 'watermelon') {
+                    // --- DRAW WATERMELON SLICE ---
+                    const r = 16;
+                    
+                    // Rind (Green)
+                    ctx.fillStyle = '#00aa00';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI, false); // Bottom half semi-circle
+                    ctx.fill();
+                    
+                    // Inner Rind (Light)
+                    ctx.fillStyle = '#ccffcc';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r - 3, 0, Math.PI, false); 
+                    ctx.fill();
+
+                    // Flesh (Red)
+                    ctx.fillStyle = '#ff3333';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r - 5, 0, Math.PI, false); 
+                    ctx.fill();
+
+                    // Seeds (Black)
+                    ctx.fillStyle = 'black';
+                    const seeds = [
+                        {x: -6, y: 5}, {x: 0, y: 8}, {x: 6, y: 5},
+                        {x: -3, y: 3}, {x: 3, y: 3}
+                    ];
+                    seeds.forEach(seed => {
+                        ctx.beginPath();
+                        ctx.ellipse(seed.x, seed.y, 1.5, 2.5, 0.2, 0, Math.PI*2);
+                        ctx.fill();
+                    });
+
+                } else {
+                    // --- DRAW OTHER CANS ---
+                    
+                    // Can Body (Rectangle)
+                    ctx.fillStyle = bodyColor;
+                    ctx.fillRect(-w/2, -h/2, w, h);
+                    
+                    // Can Body Highlight (Shine)
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.fillRect(-w/2 + 2, -h/2, 4, h);
+
+                    // Can Top (Ellipse)
+                    ctx.fillStyle = '#ccc'; // Aluminium rim
+                    ctx.beginPath();
+                    ctx.ellipse(0, -h/2, w/2, 5, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Can Bottom (Ellipse)
+                    ctx.fillStyle = bodyColor;
+                    ctx.beginPath();
+                    ctx.ellipse(0, h/2, w/2, 5, 0, 0, Math.PI, 0); // Bottom curve
+                    ctx.fill();
+                    
+                    // Label / Logo
+                    ctx.fillStyle = lidColor;
+                    // Add text shadow for better visibility
+                    ctx.shadowColor = lidColor;
+                    ctx.shadowBlur = 5;
+                    
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    if (d.type === 'multiplier') {
+                         ctx.font = 'bold 12px Arial'; // Smaller font for X2
+                         ctx.fillText('X2', 0, 0);
+                    } else if (d.type === 'slow') {
+                        ctx.font = '16px Arial';
+                        ctx.fillText('❄️', 0, 0);
+                    } else if (d.type === 'shield' || d.type === 'mega') {
+                        ctx.font = 'bold 16px Arial';
+                        ctx.fillText('⚡', 0, 0); 
+                    }
+                }
+                
+                ctx.restore();
+            });
+
+            // Draw Enemies (Parents)
+            enemies.forEach(e => {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                
+                // Flip sprite if moving left
+                if (player.x < e.x) ctx.scale(-1, 1);
+                
+                // Visual freeze effect if slowed
+                if (slowTimer > 0) {
+                     ctx.shadowColor = '#00FFFF';
+                     
+                     // Warning pulse in last 2 seconds (120 frames)
+                     if (slowTimer < 120) {
+                         // Fast pulse between 10 and 20
+                         ctx.shadowBlur = 15 + Math.sin(frames * 0.8) * 5; 
+                     } else {
+                         ctx.shadowBlur = 10;
+                     }
+                }
+
+                // DRAW CUSTOM ENEMY
+                if (player.color === '#8B4513') {
+                    // --- TRIANGLE ENEMY (Brown Bear Mode) ---
+                    ctx.fillStyle = '#FFFFFF'; 
+                    ctx.strokeStyle = '#999'; 
+                    ctx.lineWidth = 2;
+
+                    // Draw Triangle
+                    ctx.beginPath();
+                    ctx.moveTo(0, -e.size - 5); // Top point
+                    ctx.lineTo(e.size, e.size); // Bottom right
+                    ctx.lineTo(-e.size, e.size); // Bottom left
+                    ctx.closePath();
+                    
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Simple Eyes (slightly lower to fit triangle)
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-6, 2, 3, 0, Math.PI*2);
+                    ctx.arc(6, 2, 3, 0, Math.PI*2);
+                    ctx.fill();
+                } else {
+                    // --- ANGRY PARENT (Normal) ---
+                    // Head (Grey)
+                    ctx.fillStyle = '#BBBBBB'; 
+                    ctx.beginPath();
+                    ctx.arc(0, 0, e.size, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#555'; // Dark grey outline
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Glasses (Rim)
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(-7, -2, 6, 0, Math.PI*2); // Left lens
+                    ctx.arc(7, -2, 6, 0, Math.PI*2);  // Right lens
+                    ctx.stroke();
+                    
+                    // Glasses Bridge
+                    ctx.beginPath();
+                    ctx.moveTo(-1, -2);
+                    ctx.lineTo(1, -2);
+                    ctx.stroke();
+
+                    // Eyes (Behind glasses)
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(-7, -2, 4, 0, Math.PI*2);
+                    ctx.arc(7, -2, 4, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Pupils (Staring)
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-7, -2, 2, 0, Math.PI*2);
+                    ctx.arc(7, -2, 2, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Eyebrows (Angry V-shape)
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-12, -10);
+                    ctx.lineTo(-3, -5);
+                    ctx.moveTo(12, -10);
+                    ctx.lineTo(3, -5);
+                    ctx.stroke();
+
+                    // Mouth (Frown)
+                    ctx.beginPath();
+                    ctx.arc(0, 10, 6, Math.PI, 2 * Math.PI); // Frown arc
+                    ctx.stroke();
+                }
+                
+                // Draw Nag if active
+                if (e.nag && frames % 200 > e.nagTimer && frames % 200 < e.nagTimer + 60) {
+                    ctx.font = '10px Arial';
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(e.nag, 0, -e.size - 10);
+                }
+
+                ctx.restore();
+            });
+
+            // Draw Bear (Player)
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            
+            // Draw Shield if active (Layers based on strength)
+            if (player.shield > 0) {
+                for(let i = 0; i < player.shield; i++) {
+                    ctx.beginPath();
+                    // Each layer is slightly larger
+                    ctx.arc(0, 0, 30 + (i * 6), 0, Math.PI*2);
+                    ctx.strokeStyle = `rgba(0, 204, 255, ${0.5 + Math.sin(frames * 0.2) * 0.2})`; // Pulsing blue
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                ctx.fillStyle = `rgba(0, 204, 255, 0.1)`;
+                ctx.fill();
+            }
+
+            // Draw Freeze Aura if active
+            if (slowTimer > 0) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 35, 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(frames * 0.3) * 0.3})`;
+                ctx.lineWidth = 5;
+                ctx.stroke();
+            }
+
+            // Tilt based on movement
+            const tilt = player.vx * 0.1;
+            ctx.rotate(tilt);
+
+            // Ears
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(-12, -12, 8, 0, Math.PI*2); // Left ear
+            ctx.arc(12, -12, 8, 0, Math.PI*2); // Right ear
+            ctx.fill();
+
+            // Head
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI*2);
+            ctx.fill();
+
+            // Snout area
+            ctx.fillStyle = '#DDDDDD'; 
+            if (player.color === '#00cc44') ctx.fillStyle = '#00aa33'; // Keep original green snout for green bear
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 8, 6, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Nose
+            ctx.fillStyle = '#004400';
+            if (player.color !== '#00cc44') ctx.fillStyle = '#111'; // Black nose for others
+            
+            ctx.beginPath();
+            ctx.arc(0, 3, 3, 0, Math.PI*2);
+            ctx.fill();
+
+            // Eyes (wide open because caffeine)
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(-6, -4, 5, 0, Math.PI*2);
+            ctx.arc(6, -4, 5, 0, Math.PI*2);
+            ctx.fill();
+
+            // Pupils (Fixed)
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(-6, -4, 2, 0, Math.PI*2);
+            ctx.arc(6, -4, 2, 0, Math.PI*2);
+            ctx.fill
