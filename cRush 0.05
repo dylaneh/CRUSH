@@ -3,1600 +3,1074 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Caffeine Rush v0.05: Family Reunion</title>
+    <title>Caffeine Rush v0.07: Designs Restored</title>
     <style>
-        /* Tries to load font, falls back to system fonts if offline */
+        /* --- CORE STYLES --- */
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+        :root { --neon-green: #00ff00; --neon-yellow: #ffff00; --dark-bg: #1a1a1a; }
+        
         body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #1a1a1a;
+            margin: 0; overflow: hidden; background-color: var(--dark-bg);
             font-family: 'Press Start 2P', 'Courier New', Courier, monospace; 
-            touch-action: none; 
-            user-select: none;
-            -webkit-user-select: none;
+            touch-action: none; user-select: none; -webkit-user-select: none;
         }
-
-        #gameCanvas {
-            display: block;
-        }
+        #gameCanvas { display: block; }
 
         /* --- UI LAYER --- */
         #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: space-between; z-index: 10;
         }
 
         .hud {
-            padding: 20px;
-            color: white;
-            text-shadow: 2px 2px 0 #000;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            pointer-events: none;
-        }
-        
-        .dev-indicator {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            color: #ff00ff;
-            font-size: 10px;
-            font-weight: bold;
-            display: none;
-            z-index: 100;
-            text-shadow: 1px 1px 0 #000;
-            pointer-events: none;
+            padding: 20px; color: white; text-shadow: 2px 2px 0 #000;
+            display: flex; justify-content: space-between; align-items: flex-start;
         }
 
-        /* --- BUTTONS --- */
-        .game-btn {
-            background: #444;
-            color: white;
-            border: 2px solid white;
-            padding: 10px 15px;
-            font-family: inherit;
-            font-size: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px #000;
-            pointer-events: auto;
-            text-transform: uppercase;
+        .dev-indicator {
+            position: absolute; top: 5px; left: 5px; color: #ff00ff;
+            font-size: 10px; font-weight: bold; display: none; z-index: 100;
         }
-        .game-btn:active {
-            box-shadow: 0 2px #000;
-            transform: translateY(2px);
+
+        /* --- BUTTONS & INTERACTIVE --- */
+        .game-btn, .big-btn, .secondary-btn {
+            pointer-events: auto; cursor: pointer; text-transform: uppercase;
+            font-family: inherit; box-shadow: 0 4px #000; color: white; border: 2px solid white;
         }
-        
-        #pause-btn { margin-left: 10px; }
+        .game-btn { background: #444; padding: 10px 15px; font-size: 10px; }
+        .big-btn {
+            background: var(--neon-green); color: #000; border: 4px solid #004400;
+            padding: 15px 30px; font-size: 16px; margin: 10px; min-width: 200px;
+            box-shadow: 0 6px #004400; transition: transform 0.1s;
+        }
+        .big-btn:active { transform: translateY(4px); box-shadow: 0 2px #004400; }
+        .secondary-btn { background: #444; padding: 10px 20px; font-size: 10px; margin: 5px; }
 
         /* --- ENERGY BAR --- */
-        .energy-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
+        .energy-wrapper { display: flex; flex-direction: column; align-items: flex-start; }
         .energy-container {
-            width: 150px;
-            height: 18px; 
-            background: #222;
-            border: 2px solid #fff; 
-            position: relative;
-            transform: skewX(-15deg); 
-            box-shadow: 3px 3px 0px rgba(0,0,0,0.5); 
-            overflow: hidden;
-            margin-top: 3px;
+            width: 150px; height: 18px; background: #222; border: 2px solid #fff;
+            transform: skewX(-15deg); box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+            overflow: hidden; margin-top: 3px; position: relative;
         }
-
         .energy-bar {
-            height: 100%;
-            width: 100%;
-            background: repeating-linear-gradient(
-                45deg,
-                #ffff00,
-                #ffff00 10px,
-                #d4af37 10px,
-                #d4af37 20px
-            );
-            box-shadow: 0 0 15px #ffff00;
-            transition: width 0.1s linear;
-            position: relative;
+            height: 100%; width: 100%;
+            background: repeating-linear-gradient(45deg, #ffff00, #ffff00 10px, #d4af37 10px, #d4af37 20px);
+            box-shadow: 0 0 15px #ffff00; transition: width 0.1s linear;
         }
-        
-        .energy-bar::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 40%;
-            background: rgba(255, 255, 255, 0.4);
-        }
-
         .energy-bar.critical {
             background: repeating-linear-gradient(45deg, #ff0000, #ff0000 10px, #990000 10px, #990000 20px);
-            box-shadow: 0 0 20px #ff0000;
             animation: pulse-critical 0.5s infinite alternate;
         }
-
         @keyframes pulse-critical { 0% { opacity: 1; } 100% { opacity: 0.6; } }
 
-        .energy-label {
-            font-size: 10px;
-            color: #ffff00;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
-            margin-left: 5px;
-            text-shadow: 1px 1px 0 #000, 0 0 10px #ffff00;
-        }
-
         /* --- SCREENS --- */
-        #start-screen, #game-over-screen, #pause-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Slightly clearer background for menu */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 20;
-            backdrop-filter: blur(2px);
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white;
+            text-align: center; pointer-events: auto; z-index: 20; backdrop-filter: blur(2px);
         }
-
-        /* Fancy Title */
-        .title-container {
-            margin-bottom: 30px;
-            animation: float-title 3s ease-in-out infinite;
-            cursor: pointer; /* Suggests clickability for Dev Mode */
-            user-select: none;
-        }
-        
-        @keyframes float-title {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        h1 {
-            font-size: 32px;
-            color: #00ff00;
-            margin: 0;
-            line-height: 1.2;
-            text-shadow: 4px 4px 0 #004400;
-            -webkit-text-stroke: 1px #fff;
-        }
-        
-        .subtitle {
-            font-size: 14px;
-            color: #ffff00;
-            margin-top: 5px;
-            text-shadow: 2px 2px 0 #000;
-            letter-spacing: 2px;
-        }
-
-        p {
-            font-size: 12px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            color: #ccc;
-            padding: 0 20px;
-            max-width: 600px;
-        }
-
-        .big-btn {
-            background: #00ff00;
-            color: #000;
-            border: 4px solid #004400;
-            padding: 15px 30px;
-            font-family: inherit;
-            font-size: 16px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 6px #004400;
-            transition: transform 0.1s;
-            margin: 10px;
-            min-width: 200px;
-        }
-        .big-btn:hover {
-            background: #33ff33;
-            transform: scale(1.05);
-        }
-        .big-btn:active {
-            box-shadow: 0 2px #004400;
-            transform: translateY(4px) scale(1.05);
-        }
-        
-        .secondary-btn {
-            background: #444;
-            color: #fff;
-            border: 2px solid #fff;
-            padding: 10px 20px;
-            font-family: inherit;
-            font-size: 10px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 4px #000;
-            margin: 5px;
-        }
-        .secondary-btn:active {
-            box-shadow: 0 2px #000;
-            transform: translateY(2px);
-        }
-
         .hidden { display: none !important; }
-        
-        /* Modal for Instructions */
-        .modal {
-            background: #222;
-            border: 2px solid #fff;
-            padding: 20px;
-            max-width: 80%;
-            margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            text-align: left;
-        }
-        .modal h3 { color: #ffff00; margin-top: 0; font-size: 14px; }
-        .modal li { font-size: 10px; margin-bottom: 8px; line-height: 1.5; }
 
-        /* --- REPORT CARD --- */
-        .ai-verdict {
-            font-family: 'Courier New', monospace;
-            background: #222;
-            border: 2px dashed #00ff00;
-            padding: 15px;
-            margin: 20px;
-            max-width: 80%;
-            color: #00ff00;
-            font-size: 12px;
-            line-height: 1.4;
-            box-shadow: 0 0 10px #004400;
-            text-align: left;
-            min-height: 40px;
-            position: relative;
+        .title-container h1 {
+            font-size: 32px; color: var(--neon-green); margin: 0;
+            text-shadow: 4px 4px 0 #004400; -webkit-text-stroke: 1px #fff;
         }
-        .ai-verdict::before {
-            content: "✨ PARENTAL REPORT CARD ✨";
-            position: absolute;
-            top: -10px; left: 10px;
-            background: #222;
-            padding: 0 5px;
-            font-weight: bold;
-            color: #ffff00;
-        }
+        .title-container { animation: float-title 3s ease-in-out infinite; cursor: pointer; }
+        @keyframes float-title { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        /* --- CHAR SELECT --- */
+        /* --- CHARACTER SELECT --- */
         .char-select-container { 
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #444;
+            background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px;
+            margin-bottom: 20px; border: 1px solid #444;
         }
-        .bear-options { display: flex; justify-content: center; gap: 20px; margin-top: 10px; align-items: center; }
+        .bear-options { display: flex; gap: 20px; align-items: center; }
         .bear-option-wrapper {
             display: flex; flex-direction: column; align-items: center; cursor: pointer;
             opacity: 0.6; transition: all 0.2s;
         }
-        .bear-option-wrapper:hover { opacity: 1; }
-        .bear-option-wrapper.selected { opacity: 1; transform: scale(1.1); }
+        .bear-option-wrapper:hover, .bear-option-wrapper.selected { opacity: 1; transform: scale(1.1); }
+        .bear-option-wrapper.selected .bear-option { border-color: #fff; box-shadow: 0 0 10px #fff; }
         
-        /* --- BEAR HEAD CSS --- */
+        /* Bear CSS Art (Matches Canvas Art) */
         .bear-option {
-            width: 44px; height: 40px; /* Slightly wider for head shape */
-            border-radius: 50%;
-            border: 2px solid #222;
-            margin-bottom: 5px;
-            position: relative;
-            /* No overflow hidden so ears stick out */
+            width: 44px; height: 40px; border-radius: 50%; border: 2px solid #222;
+            position: relative; margin-bottom: 5px;
         }
-        
         .bear-ear {
-            position: absolute;
-            top: -4px; width: 14px; height: 14px;
-            background: inherit; /* Matches head color */
-            border: 2px solid #222;
-            border-radius: 50%;
-            z-index: -1; /* Tucks behind the head */
+            position: absolute; top: -4px; width: 14px; height: 14px;
+            background: inherit; border: 2px solid #222; border-radius: 50%; z-index: -1;
         }
-        .bear-ear.left { left: -2px; }
-        .bear-ear.right { right: -2px; }
-
+        .bear-ear.left { left: -2px; } .bear-ear.right { right: -2px; }
         .bear-snout {
-            position: absolute;
-            bottom: 6px; left: 50%; transform: translateX(-50%);
-            width: 18px; height: 14px;
-            background: rgba(255, 255, 255, 0.4); /* Lighter shade of parent */
-            border-radius: 50%;
+            position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+            width: 18px; height: 14px; background: rgba(255,255,255,0.4); border-radius: 50%;
         }
-        
         .bear-nose {
-            position: absolute;
-            top: 3px; left: 50%; transform: translateX(-50%);
-            width: 8px; height: 6px;
-            background: #111;
-            border-radius: 50%;
+            position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+            width: 8px; height: 6px; background: #111; border-radius: 50%;
         }
-        
-        .bear-eyes {
-            position: absolute;
-            top: 12px; left: 0; width: 100%;
-        }
+        .bear-eyes { position: absolute; top: 12px; left: 0; width: 100%; }
         .bear-eyes::before, .bear-eyes::after {
-            content: ''; position: absolute;
-            width: 5px; height: 5px; background: #111; border-radius: 50%;
+            content: ''; position: absolute; width: 5px; height: 5px; background: #111; border-radius: 50%;
         }
-        .bear-eyes::before { left: 10px; }
-        .bear-eyes::after { right: 10px; }
-        
-        .selected .bear-option {
-            border-color: #fff;
-            box-shadow: 0 0 10px #fff;
-        }
-        .bear-name { font-size: 8px; color: #aaa; margin-top: 5px;}
-        .selected .bear-name { color: #fff; text-shadow: 0 0 5px #fff; }
-        
-        /* --- LOCKED BEAR STYLES --- */
-        .bear-option-wrapper.locked {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(100%);
-        }
-        .bear-option-wrapper.locked .bear-option {
-            background: #111 !important; /* Silhouette color */
-            border-color: #333;
-        }
-        .bear-option-wrapper.locked .bear-ear {
-            background: #111 !important;
-            border-color: #333;
-        }
-        /* Hide face details for silhouette */
-        .bear-option-wrapper.locked .bear-eyes, 
-        .bear-option-wrapper.locked .bear-snout {
-            display: none;
-        }
-        /* Add Question Mark */
+        .bear-eyes::before { left: 10px; } .bear-eyes::after { right: 10px; }
+
+        /* Locked State */
+        .bear-option-wrapper.locked { opacity: 0.4; filter: grayscale(100%); cursor: not-allowed; }
         .bear-option-wrapper.locked .bear-option::after {
-            content: '?';
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: #444;
-            font-size: 20px;
-            font-family: sans-serif;
-            font-weight: bold;
+            content: '?'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: #444; font-size: 20px; font-weight: bold;
         }
 
-        /* --- JOYSTICK & MOBILE CONTROLS --- */
-        #joystick-container {
-            position: absolute;
-            top: 0; left: 0;
-            pointer-events: none;
-            z-index: 15;
-            opacity: 0.6;
-        }
+        /* --- JOYSTICK & MOBILE --- */
+        #joystick-container { position: absolute; pointer-events: none; z-index: 15; opacity: 0.6; }
         #joystick-base {
-            position: absolute;
-            width: 100px; height: 100px;
-            border: 4px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.1);
+            position: absolute; width: 100px; height: 100px; border: 4px solid rgba(255,255,255,0.4);
+            border-radius: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.1);
         }
         #joystick-knob {
-            position: absolute;
-            width: 40px; height: 40px;
-            background: rgba(0, 255, 0, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            border: 2px solid white;
+            position: absolute; width: 40px; height: 40px; background: rgba(0, 255, 0, 0.8);
+            border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid white;
         }
-
         #mobile-dash-btn {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: rgba(255, 255, 0, 0.3);
-            border: 4px solid rgba(255, 255, 0, 0.6);
-            color: #ffff00;
-            font-family: inherit;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto;
-            user-select: none;
-            touch-action: manipulation;
-            font-size: 14px;
-            box-shadow: 0 0 10px rgba(255,255,0,0.2);
+            position: absolute; bottom: 30px; right: 30px; width: 80px; height: 80px;
+            border-radius: 50%; background: rgba(255, 255, 0, 0.3); border: 4px solid rgba(255, 255, 0, 0.6);
+            color: #ffff00; display: flex; justify-content: center; align-items: center;
+            pointer-events: auto; font-weight: bold; font-size: 14px; display: none;
         }
-        #mobile-dash-btn:active {
-            background: rgba(255, 255, 0, 0.6);
-            transform: scale(0.95);
-        }
+        @media (hover: none) and (pointer: coarse) { #mobile-dash-btn { display: flex; } }
         
-        .touch-only { display: none; }
-
+        /* Report Card */
+        .ai-verdict {
+            font-family: 'Courier New', monospace; background: #222; border: 2px dashed var(--neon-green);
+            padding: 15px; margin: 20px; max-width: 80%; color: var(--neon-green); font-size: 12px;
+            text-align: left; position: relative;
+        }
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
         <div class="hud">
-            <!-- Dev Mode Indicator -->
             <div id="dev-indicator" class="dev-indicator">DEV MODE ACTIVE</div>
-            
             <div class="energy-wrapper">
-                <div class="energy-label">⚡ CAFFEINE LEVEL</div>
-                <div class="energy-container">
-                    <div id="energy-bar" class="energy-bar"></div>
-                </div>
+                <div class="energy-label" style="color:var(--neon-yellow); font-size:10px; font-weight:bold;">⚡ CAFFEINE LEVEL</div>
+                <div class="energy-container"><div id="energy-bar" class="energy-bar"></div></div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                <div class="high-score-label">HI: <span id="high-score-val" style="color:#00ff00">0</span></div>
+                <div class="high-score-label">HI: <span id="high-score-val" style="color:var(--neon-green)">0</span></div>
                 <div id="score-board">SCORE: <span id="score-val">0</span></div>
                 <div id="combo-display" style="color:#ff00ff; font-size:12px; height:15px; margin-top:5px;"></div>
                 <button id="pause-btn" class="game-btn" style="margin-top:10px;">PAUSE</button>
             </div>
         </div>
-        
-        <!-- Mobile Dash Button -->
-        <div id="mobile-dash-btn" class="touch-only">DASH<br>⚡15</div>
+        <div id="mobile-dash-btn">DASH<br>⚡15</div>
     </div>
 
-    <!-- Joystick Elements -->
     <div id="joystick-container" class="hidden">
         <div id="joystick-base"></div>
         <div id="joystick-knob"></div>
     </div>
 
-    <div id="start-screen">
+    <div id="start-screen" class="screen">
         <div class="title-container">
             <h1>CAFFEINE RUSH</h1>
-            <div class="subtitle">SUGAR CRASH EDITION</div>
+            <div style="color:var(--neon-yellow); font-size:14px; margin-top:5px; letter-spacing:2px;">SUGAR CRASH EDITION</div>
         </div>
-        
-        <!-- Main Menu Buttons -->
         <div id="main-menu-content">
              <div class="char-select-container">
                 <p style="color: #fff; margin-bottom: 15px; font-size: 10px;">SELECT CHARACTER:</p>
                 <div class="bear-options">
-                    
-                    <!-- GREEN BEAR -->
-                    <div class="bear-option-wrapper selected" data-color="#00cc44">
-                        <div class="bear-option" style="background: #00cc44;">
-                            <div class="bear-ear left"></div><div class="bear-ear right"></div>
-                            <div class="bear-eyes"></div>
-                            <div class="bear-snout"><div class="bear-nose"></div></div>
-                        </div>
-                        <div class="bear-name">GREEN</div>
+                    <div class="bear-option-wrapper selected" data-color="#00cc44" data-name="Green Bear">
+                        <div class="bear-option" style="background: #00cc44;"><div class="bear-ear left"></div><div class="bear-ear right"></div><div class="bear-eyes"></div><div class="bear-snout"><div class="bear-nose"></div></div></div>
+                        <div class="bear-name" style="font-size:8px; margin-top:5px; color:#fff;">GREEN</div>
                     </div>
-
-                    <!-- BROWN BEAR -->
-                    <div class="bear-option-wrapper" data-color="#8B4513">
-                        <div class="bear-option" style="background: #8B4513;">
-                            <div class="bear-ear left"></div><div class="bear-ear right"></div>
-                            <div class="bear-eyes"></div>
-                            <div class="bear-snout"><div class="bear-nose"></div></div>
-                        </div>
-                        <div class="bear-name">BROWN</div>
+                    <div class="bear-option-wrapper" data-color="#8B4513" data-name="Brown Bear">
+                        <div class="bear-option" style="background: #8B4513;"><div class="bear-ear left"></div><div class="bear-ear right"></div><div class="bear-eyes"></div><div class="bear-snout"><div class="bear-nose"></div></div></div>
+                        <div class="bear-name" style="font-size:8px; margin-top:5px; color:#aaa;">BROWN</div>
                     </div>
-
-                    <!-- BLUE BEAR -->
-                    <div class="bear-option-wrapper" data-color="#0066ff">
-                        <div class="bear-option" style="background: #0066ff;">
-                            <div class="bear-ear left"></div><div class="bear-ear right"></div>
-                            <div class="bear-eyes"></div>
-                            <div class="bear-snout"><div class="bear-nose"></div></div>
-                        </div>
-                        <div class="bear-name">BLUE</div>
+                    <div class="bear-option-wrapper" data-color="#0066ff" data-name="Blue Bear">
+                        <div class="bear-option" style="background: #0066ff;"><div class="bear-ear left"></div><div class="bear-ear right"></div><div class="bear-eyes"></div><div class="bear-snout"><div class="bear-nose"></div></div></div>
+                        <div class="bear-name" style="font-size:8px; margin-top:5px; color:#aaa;">BLUE</div>
                     </div>
-
-                    <!-- PINK BEAR -->
-                    <div class="bear-option-wrapper" data-color="#ff66b2">
-                        <div class="bear-option" style="background: #ff66b2;">
-                            <div class="bear-ear left"></div><div class="bear-ear right"></div>
-                            <div class="bear-eyes"></div>
-                            <div class="bear-snout"><div class="bear-nose"></div></div>
-                        </div>
-                        <div class="bear-name">PINK</div>
+                    <div class="bear-option-wrapper" data-color="#ff66b2" data-name="Pink Bear">
+                        <div class="bear-option" style="background: #ff66b2;"><div class="bear-ear left"></div><div class="bear-ear right"></div><div class="bear-eyes"></div><div class="bear-snout"><div class="bear-nose"></div></div></div>
+                        <div class="bear-name" style="font-size:8px; margin-top:5px; color:#aaa;">PINK</div>
                     </div>
-
-                    <!-- SECRET BEAR (GOLD) -->
-                    <!-- ID added for JS manipulation -->
-                    <div id="secret-bear-option" class="bear-option-wrapper locked" data-color="#FFD700">
-                        <div class="bear-option" style="background: #FFD700;">
-                            <div class="bear-ear left"></div><div class="bear-ear right"></div>
-                            <div class="bear-eyes"></div>
-                            <div class="bear-snout"><div class="bear-nose"></div></div>
-                        </div>
-                        <div class="bear-name">???</div>
+                    <div id="secret-bear-option" class="bear-option-wrapper locked" data-color="#FFD700" data-name="Gold Bear">
+                        <div class="bear-option" style="background: #FFD700;"><div class="bear-ear left"></div><div class="bear-ear right"></div><div class="bear-eyes"></div><div class="bear-snout"><div class="bear-nose"></div></div></div>
+                        <div class="bear-name" style="font-size:8px; margin-top:5px; color:#aaa;">???</div>
                     </div>
-
                 </div>
             </div>
-
-            <button id="start-btn" class="big-btn">PLAY GAME</button>
-            <br>
+            <button id="start-btn" class="big-btn">PLAY GAME</button><br>
             <button id="how-to-btn" class="secondary-btn">HOW TO PLAY</button>
         </div>
-
-        <!-- How To Play Modal -->
-        <div id="how-to-screen" class="hidden">
-            <div class="modal">
-                <h3>INSTRUCTIONS</h3>
-                <ul style="padding-left: 20px; color: #ccc;">
-                    <li><strong>Goal:</strong> Stay awake! Drink soda to keep energy up.</li>
-                    <li><strong>Controls:</strong> Arrow Keys / WASD / Touch Drag.</li>
-                    <li><strong>Dash:</strong> SPACE / Dash Button. Costs 15 Energy. Makes you invincible!</li>
-                    <li><strong>Combo:</strong> Collect drinks quickly for X2 multipliers!</li>
-                    <li><strong>Enemies:</strong> Avoid parents or DASH into them to knock them out!</li>
-                </ul>
-            </div>
+        <div id="how-to-screen" class="hidden" style="max-width: 500px;">
+            <h3 style="color:var(--neon-yellow);">INSTRUCTIONS</h3>
+            <ul style="text-align:left; color:#ccc; font-size:12px; line-height:1.6;">
+                <li><strong>Goal:</strong> Stay awake! Drink soda.</li>
+                <li><strong>Controls:</strong> Arrow Keys / WASD / Touch.</li>
+                <li><strong>Dash:</strong> SPACE. Costs 15 Energy. Invincible!</li>
+                <li><strong>Enemies:</strong> Dodge parents. Dash to knock them out.</li>
+            </ul>
             <button id="back-menu-btn" class="secondary-btn">BACK</button>
         </div>
     </div>
 
-    <div id="pause-screen" class="hidden">
+    <div id="pause-screen" class="screen hidden">
         <h1>PAUSED</h1>
-        <p>Take a breath.</p>
         <button id="resume-btn" class="big-btn">RESUME</button>
         <button id="quit-btn" class="big-btn" style="background: #ff4444; border-color: #880000;">MAIN MENU</button>
     </div>
 
-    <div id="game-over-screen" class="hidden">
-        <h1 style="color: #ff4444;">YOU GOT GROUNDED!</h1>
-        <p id="death-reason">Ran out of energy...</p>
-        
+    <div id="game-over-screen" class="screen hidden">
+        <h1 id="go-title" style="color: #ff4444;">YOU GOT GROUNDED!</h1>
+        <p id="death-reason" style="color:#ccc;">Ran out of energy...</p>
         <div id="ai-verdict-box" class="ai-verdict">Generating parental lecture...</div>
-        
         <p>Final Score: <span id="final-score">0</span></p>
         <button id="restart-btn" class="big-btn">TRY AGAIN</button>
-        <button id="go-menu-btn" class="big-btn" style="background: #ff4444; border-color: #880000; font-size: 12px;">CHANGE BEAR</button>
+        <button id="go-menu-btn" class="secondary-btn">CHANGE BEAR</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        // --- OFFLINE DATA SETUP ---
-        const parentNags = [
-            "Go to bed!", "It's a school night!", "Stop jumping!", 
-            "Eat your veggies!", "Where are your pants?", "Turn that noise down!",
-            "Did you do homework?", "Clean your room!"
-        ];
-        
-        // Specific nags for Brown Bear
-        const brownBearNags = [
-            "Come here boy!", "Get back to work!", "Stop stealing!", "Get the rope!"
-        ];
+        /**
+         * CAFFEINE RUSH v0.07 (Visuals Restored)
+         * Created by Green Bear & Gemini
+         */
 
-        const groundedNotes = [
-            "I'm not mad, just disappointed. Okay, I'm a little mad about the score.",
-            "You call that an attempt? Go to your room and think about your agility.",
-            "Grounded for 100 years! Or until you beat the high score.",
-            "I expected more from a bear with that much caffeine.",
-            "Bedtime was 3 hours ago. This performance is unacceptable.",
-            "If you dodged chores like you dodge parents, the house would be a mess."
-        ];
-
-        function getOfflineVerdict() {
-            return groundedNotes[Math.floor(Math.random() * groundedNotes.length)];
-        }
-
-        // --- LOCAL STORAGE HIGH SCORE ---
-        let highScore = localStorage.getItem('caffeine_rush_highscore') || 0;
-        
-        // CHECK SECRET UNLOCK STATUS
-        let isSecretUnlocked = localStorage.getItem('caffeine_rush_secret_unlocked') === 'true';
-
-        const highScoreEl = document.getElementById('high-score-val');
-        highScoreEl.innerText = highScore;
-
-        function saveLocalHighScore(newScore) {
-            localStorage.setItem('caffeine_rush_highscore', newScore);
-        }
-        
-        function unlockSecret() {
-            if (!isSecretUnlocked) {
-                isSecretUnlocked = true;
-                localStorage.setItem('caffeine_rush_secret_unlocked', 'true');
-                alert("✨ SECRET UNLOCKED: GOLDEN BEAR! ✨");
-                updateMenuVisuals();
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            PHYSICS: {
+                FRICTION: 0.85,
+                ACCELERATION: 0.8,
+                MAX_SPEED: 2.8,
+                DASH_SPEED: 12,
+                DASH_COST: 15,
+                DASH_COOLDOWN: 60
+            },
+            GAME: {
+                ENERGY_DRAIN: 0.05,
+                SPAWN_RATE_ENEMY: 140,
+                SPAWN_RATE_DRINK: 120,
+            },
+            COLORS: {
+                PARTICLE_DEFAULT: '#fff',
+                TEXT_FLOAT: '#fff',
+                ENEMY_DAD: '#BBB',
+                ENEMY_MOM: '#d68a8a'
             }
-        }
-
-        // --- DOM ELEMENTS ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const energyBar = document.getElementById('energy-bar');
-        const scoreVal = document.getElementById('score-val');
-        const comboDisplay = document.getElementById('combo-display');
-        const finalScoreVal = document.getElementById('final-score');
-        
-        const startScreen = document.getElementById('start-screen');
-        const mainMenuContent = document.getElementById('main-menu-content');
-        const howToScreen = document.getElementById('how-to-screen');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const pauseScreen = document.getElementById('pause-screen');
-        const deathReason = document.getElementById('death-reason');
-        const verdictBox = document.getElementById('ai-verdict-box');
-
-        const startBtn = document.getElementById('start-btn');
-        const howToBtn = document.getElementById('how-to-btn');
-        const backMenuBtn = document.getElementById('back-menu-btn');
-        const restartBtn = document.getElementById('restart-btn');
-        const pauseBtn = document.getElementById('pause-btn');
-        const resumeBtn = document.getElementById('resume-btn');
-        const quitBtn = document.getElementById('quit-btn');
-        const goMenuBtn = document.getElementById('go-menu-btn');
-        const mobileDashBtn = document.getElementById('mobile-dash-btn');
-        const secretBearOption = document.getElementById('secret-bear-option');
-        const devIndicator = document.getElementById('dev-indicator');
-
-        // Joystick DOM
-        const joystickContainer = document.getElementById('joystick-container');
-        const joystickBase = document.getElementById('joystick-base');
-        const joystickKnob = document.getElementById('joystick-knob');
-
-        // --- GAME VARIABLES ---
-        let isPlaying = false;
-        let isPaused = false;
-        let devMode = false;
-        let godMode = false; // Separate toggle
-        let score = 0;
-        let frames = 0;
-        let energy = 100;
-        let difficulty = 1;
-        
-        let scoreMultiplier = 1;
-        let multiplierTimer = 0;
-        let slowTimer = 0;
-        let slowCooldown = 0;
-
-        // Combo System
-        let comboCount = 0;
-        let comboTimer = 0;
-        const MAX_COMBO_TIMER = 120; // 2 seconds to chain
-
-        // Screen Shake
-        let shakeAmount = 0;
-
-        // Character Selection
-        let selectedColor = '#00cc44'; // Green default
-        const bearOptions = document.querySelectorAll('.bear-option-wrapper');
-
-        // Update menu based on unlock status
-        function updateMenuVisuals() {
-            if (isSecretUnlocked) {
-                secretBearOption.classList.remove('locked');
-                secretBearOption.querySelector('.bear-name').innerText = 'GOLD';
-            }
-        }
-        // Call immediately
-        updateMenuVisuals();
-
-        bearOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                
-                // Prevent selection if locked
-                if (option.classList.contains('locked')) return;
-
-                bearOptions.forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
-                selectedColor = option.dataset.color;
-            });
-        });
-
-        // Menu Logic
-        howToBtn.addEventListener('click', () => {
-            mainMenuContent.classList.add('hidden');
-            howToScreen.classList.remove('hidden');
-        });
-
-        backMenuBtn.addEventListener('click', () => {
-            howToScreen.classList.add('hidden');
-            mainMenuContent.classList.remove('hidden');
-        });
-
-        // Player Object
-        const player = {
-            x: 0, y: 0,
-            radius: 20,
-            maxSpeed: 2.8, 
-            vx: 0, vy: 0,
-            friction: 0.85, 
-            acceleration: 0.8, 
-            color: '#00cc44',
-            shield: 0,
-            // Dash props
-            isDashing: false,
-            dashTimer: 0,
-            dashCooldown: 0
         };
 
-        const keys = {
-            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
-            w: false, s: false, a: false, d: false, " ": false
+        const STRINGS = {
+            NAGS: [ "Go to bed!", "School night!", "Stop jumping!", "Eat veggies!", "Clean your room!" ],
+            NAGS_BROWN: [ "Come here boy!", "Get back to work!", "Stop stealing!", "Get the rope!" ],
+            VERDICTS: [
+                "I'm not mad, just disappointed.", "Grounded for 100 years!", 
+                "Bedtime was 3 hours ago.", "You call that an attempt?"
+            ]
         };
 
-        // Joystick State
-        let joystick = {
-            active: false,
-            baseX: 0, baseY: 0,
-            stickX: 0, stickY: 0,
-            vectorX: 0, vectorY: 0,
-            maxRadius: 50
+        // --- UTILS ---
+        const Utils = {
+            rand: (min, max) => Math.random() * (max - min) + min,
+            randItem: (arr) => arr[Math.floor(Math.random() * arr.length)],
+            dist: (x1, y1, x2, y2) => Math.sqrt((x2-x1)**2 + (y2-y1)**2)
         };
 
-        let enemies = [];
-        let drinks = [];
-        let particles = [];
-        let shockwaves = [];
-        let floatTexts = []; // For combo text
-
-        // --- RESIZE ---
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            if (!isPlaying) {
-                player.x = canvas.width / 2;
-                player.y = canvas.height / 2;
-            }
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // --- INPUT HANDLING ---
-        
-        // Keyboard
-        window.addEventListener('keydown', e => {
-            keys[e.key] = true;
-            if (e.key === 'p' || e.key === 'P') togglePause();
-            if (e.key === '`') toggleDevMode();
-            if (e.key === ' ' && isPlaying && !isPaused) triggerDash();
-            
-            // DEV MODE SHORTCUTS
-            if (devMode && isPlaying && !isPaused) {
-                if (e.key === 'g' || e.key === 'G') toggleGodMode();
-                if (e.key === '1') spawnEnemy();
-                if (e.key === '2') spawnDrink('normal');
-                if (e.key === '3') spawnDrink(); // Random special
-                if (e.key === 'k' || e.key === 'K') { energy = 0; gameOver("KILLED BY DEV"); }
-            }
-        });
-        window.addEventListener('keyup', e => keys[e.key] = false);
-
-        // DEV MODE TOGGLE
-        function toggleDevMode() {
-            devMode = !devMode;
-            if(devMode) {
-                godMode = true; // Default to god mode on
-                updateDevUI();
-                devIndicator.style.display = 'block';
-                unlockSecret(); // Auto unlock for testing
-                energy = 100;
-            } else {
-                godMode = false;
-                devIndicator.style.display = 'none';
-            }
-        }
-        
-        function toggleGodMode() {
-            godMode = !godMode;
-            updateDevUI();
-        }
-        
-        function updateDevUI() {
-            devIndicator.innerText = `DEV MODE | GOD: ${godMode ? 'ON' : 'OFF'}`;
-            devIndicator.style.color = godMode ? '#ff00ff' : '#ffffff';
-        }
-
-        // Touch / Joystick
-        function isTouchDevice() {
-            return (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
-        }
-
-        if (isTouchDevice()) {
-            document.querySelectorAll('.touch-only').forEach(el => el.style.display = 'flex');
-        }
-
-        window.addEventListener('touchstart', e => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('.game-btn') || e.target.closest('.bear-options') || e.target.id === 'mobile-dash-btn') return;
-            // Allow menu interaction
-            if (!isPlaying) return;
-
-            e.preventDefault();
-            const touch = e.touches[0];
-            joystick.active = true;
-            joystick.baseX = touch.clientX;
-            joystick.baseY = touch.clientY;
-            joystick.stickX = touch.clientX;
-            joystick.stickY = touch.clientY;
-            
-            joystickContainer.classList.remove('hidden');
-            joystickBase.style.left = joystick.baseX + 'px';
-            joystickBase.style.top = joystick.baseY + 'px';
-            joystickKnob.style.left = joystick.baseX + 'px';
-            joystickKnob.style.top = joystick.baseY + 'px';
-        }, {passive: false});
-
-        window.addEventListener('touchmove', e => {
-            if(!joystick.active) return;
-            e.preventDefault();
-            const touch = e.touches[0];
-            
-            const dx = touch.clientX - joystick.baseX;
-            const dy = touch.clientY - joystick.baseY;
-            const distance = Math.sqrt(dx*dx + dy*dy);
-            
-            const limit = Math.min(distance, joystick.maxRadius);
-            const angle = Math.atan2(dy, dx);
-            
-            joystick.stickX = joystick.baseX + Math.cos(angle) * limit;
-            joystick.stickY = joystick.baseY + Math.sin(angle) * limit;
-            
-            joystick.vectorX = (joystick.stickX - joystick.baseX) / joystick.maxRadius;
-            joystick.vectorY = (joystick.stickY - joystick.baseY) / joystick.maxRadius;
-
-            joystickKnob.style.left = joystick.stickX + 'px';
-            joystickKnob.style.top = joystick.stickY + 'px';
-        }, {passive: false});
-
-        window.addEventListener('touchend', e => {
-            if (e.touches.length === 0) {
-                joystick.active = false;
-                joystickContainer.classList.add('hidden');
-                joystick.vectorX = 0;
-                joystick.vectorY = 0;
-            }
-        });
-
-        mobileDashBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            triggerDash();
-        });
-        
-        // Secret Title Click
-        let titleClicks = 0;
-        document.querySelector('.title-container').addEventListener('click', () => {
-            titleClicks++;
-            if(titleClicks >= 5) {
-                toggleDevMode();
-                titleClicks = 0;
-            }
-        });
-
-        // --- GAME LOGIC ---
-
-        function triggerDash() {
-            // Dev mode allows dashing without cost, or just handles collisions differently
-            if (player.dashCooldown <= 0 && (energy >= 15 || godMode)) {
-                if(!godMode) energy -= 15;
-                player.isDashing = true;
-                player.dashTimer = 15; 
-                player.dashCooldown = 60; 
-                
-                let dx = player.vx;
-                let dy = player.vy;
-                
-                if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-                    dx = (Math.random() - 0.5);
-                    dy = (Math.random() - 0.5);
-                }
-                
-                const len = Math.sqrt(dx*dx + dy*dy);
-                player.vx = (dx / len) * 12; 
-                player.vy = (dy / len) * 12;
-                
-                createParticles(player.x, player.y, '#fff', 10);
-                shakeAmount = 5;
-            }
-        }
-
-        function spawnEnemy() {
-            const edge = Math.floor(Math.random() * 4);
-            let x, y;
-            const size = 18; 
-            const buffer = 50;
-
-            if (edge === 0) { x = Math.random() * canvas.width; y = -buffer; }
-            else if (edge === 1) { x = canvas.width + buffer; y = Math.random() * canvas.height; }
-            else if (edge === 2) { x = Math.random() * canvas.width; y = canvas.height + buffer; }
-            else { x = -buffer; y = Math.random() * canvas.height; }
-
-            const maxBonus = 2.0;
-            const bonus = Math.min(maxBonus, score / 5000);
-            let speed = (Math.random() * 0.4 + 0.3) + bonus;
-
-            let currentNagList = parentNags; // Default to parents
-            let enemyType = 'dad'; // Default
-
-            if (player.color === '#8B4513') { 
-                speed *= 2.5;
-                currentNagList = brownBearNags; // Switch to Brown Bear nags
-                enemyType = 'triangle';
-            } else {
-                // Randomize family member for Green/Blue/Pink bear (Excluding Brown)
-                // NEW: Added Uncle (Square), Cousin (Hexagon), Neighbor (Oval)
-                const types = ['dad', 'mom', 'grandma', 'uncle', 'cousin', 'neighbor'];
-                enemyType = types[Math.floor(Math.random() * types.length)];
+        // --- INPUT HANDLER ---
+        class InputHandler {
+            constructor() {
+                this.keys = {};
+                this.joystick = { active: false, x: 0, y: 0, vecX: 0, vecY: 0, radius: 50 };
+                this.bindEvents();
             }
 
-            enemies.push({ 
-                x, y, size, speed, angle: 0, 
-                wobbleOffset: Math.random() * Math.PI * 2,
-                nag: currentNagList[Math.floor(Math.random() * currentNagList.length)],
-                nagTimer: Math.random() * 300,
-                type: enemyType
-            });
-        }
+            bindEvents() {
+                window.addEventListener('keydown', e => {
+                    this.keys[e.key] = true;
+                    if (e.key === 'p' || e.key === 'P') Game.instance.togglePause();
+                    if (e.key === ' ') Game.instance.player.tryDash();
+                    if (e.key === '`') Game.instance.toggleDevMode();
+                    
+                    // Dev Shortcuts
+                    if (Game.instance.devMode) {
+                        if (e.key === '1') Game.instance.spawner.spawnEnemy();
+                        if (e.key === '2') Game.instance.spawner.spawnDrink();
+                        if (e.key === 'k') Game.instance.gameOver("KILLED BY DEV");
+                        if (e.key === 'g') Game.instance.toggleGodMode();
+                    }
+                });
+                window.addEventListener('keyup', e => this.keys[e.key] = false);
 
-        function spawnDrink(forcedType = null) {
-            const margin = 50;
-            const x = Math.random() * (canvas.width - margin * 2) + margin;
-            const y = Math.random() * (canvas.height - margin * 2) + margin;
-            
-            let type = 'normal';
-            if (forcedType) {
-                type = forcedType;
-            } else {
-                const rand = Math.random();
-                if (rand > 0.95) type = 'mega';
-                else if (rand > 0.90) type = 'shield';
-                else if (rand > 0.85 && slowCooldown <= 0) type = 'slow';
-            }
+                // Touch
+                const container = document.getElementById('joystick-container');
+                const base = document.getElementById('joystick-base');
+                const knob = document.getElementById('joystick-knob');
 
-            if (player.color === '#8B4513') type = 'watermelon';
+                window.addEventListener('touchstart', e => {
+                    if (e.target.closest('button') || e.target.id === 'mobile-dash-btn') return;
+                    if (!Game.instance.isPlaying) return;
+                    e.preventDefault();
+                    
+                    const touch = e.touches[0];
+                    this.joystick.active = true;
+                    this.joystick.x = touch.clientX; 
+                    this.joystick.y = touch.clientY;
+                    
+                    container.classList.remove('hidden');
+                    base.style.left = knob.style.left = this.joystick.x + 'px';
+                    base.style.top = knob.style.top = this.joystick.y + 'px';
+                }, {passive: false});
 
-            // REDUCED SIZE: collision radius 20 -> 15
-            drinks.push({ x, y, size: 15, life: 1000, scale: 0, type }); 
-        }
+                window.addEventListener('touchmove', e => {
+                    if(!this.joystick.active) return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const dx = touch.clientX - this.joystick.x;
+                    const dy = touch.clientY - this.joystick.y;
+                    const dist = Math.min(Math.sqrt(dx*dx+dy*dy), this.joystick.radius);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    const knobX = this.joystick.x + Math.cos(angle) * dist;
+                    const knobY = this.joystick.y + Math.sin(angle) * dist;
+                    
+                    knob.style.left = knobX + 'px';
+                    knob.style.top = knobY + 'px';
+                    
+                    this.joystick.vecX = (knobX - this.joystick.x) / this.joystick.radius;
+                    this.joystick.vecY = (knobY - this.joystick.y) / this.joystick.radius;
+                }, {passive: false});
 
-        function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    life: 30 + Math.random() * 20,
-                    color: color,
-                    size: Math.random() * 5 + 2
+                window.addEventListener('touchend', e => {
+                    if(e.touches.length === 0) {
+                        this.joystick.active = false;
+                        container.classList.add('hidden');
+                        this.joystick.vecX = this.joystick.vecY = 0;
+                    }
+                });
+
+                document.getElementById('mobile-dash-btn').addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    Game.instance.player.tryDash();
                 });
             }
-        }
 
-        function createFloatText(x, y, text, color) {
-            floatTexts.push({ x, y, text, color, life: 60, vy: -1 });
-        }
-
-        function triggerMegaBlast() {
-            shockwaves.push({ r: 0, alpha: 1 });
-            shakeAmount = 20;
-            enemies.forEach(e => {
-                createParticles(e.x, e.y, '#ff4444', 15);
-                addScore(50);
-            });
-            enemies = [];
-        }
-
-        function addScore(points) {
-            const comboBonus = 1 + (comboCount * 0.1);
-            const total = Math.floor(points * scoreMultiplier * comboBonus);
-            score += total;
-            scoreVal.innerText = score;
-        }
-
-        function togglePause() {
-            if (!isPlaying || gameOverScreen.classList.contains('hidden') === false) return;
-            isPaused = !isPaused;
-            if (isPaused) pauseScreen.classList.remove('hidden');
-            else pauseScreen.classList.add('hidden');
-        }
-
-        function quitToMenu() {
-            isPlaying = false; isPaused = false;
-            
-            // Reset Screens
-            startScreen.classList.remove('hidden');
-            mainMenuContent.classList.remove('hidden');
-            howToScreen.classList.add('hidden');
-            
-            pauseScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            
-            enemies = []; drinks = []; particles = []; shockwaves = []; floatTexts = [];
-            
-            // Re-center player for menu background
-            player.x = canvas.width/2;
-            player.y = canvas.height/2;
-            player.color = selectedColor;
-        }
-
-        function resetGame() {
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            player.vx = 0; player.vy = 0;
-            player.shield = 0;
-            player.color = selectedColor;
-            player.dashCooldown = 0;
-            player.isDashing = false;
-            
-            energy = 100;
-            score = 0;
-            frames = 0;
-            difficulty = 1;
-            
-            scoreMultiplier = 1;
-            multiplierTimer = 0;
-            slowTimer = 0;
-            slowCooldown = 0;
-            
-            comboCount = 0;
-            comboTimer = 0;
-            shakeAmount = 0;
-            
-            enemies = [];
-            drinks = [];
-            particles = [];
-            shockwaves = [];
-            floatTexts = [];
-            
-            scoreVal.innerText = '0';
-            comboDisplay.innerText = '';
-            energyBar.style.width = '100%';
-            
-            isPlaying = true;
-            isPaused = false;
-            
-            startScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            pauseScreen.classList.add('hidden');
-            
-            spawnDrink();
-            spawnDrink();
-            
-            // Re-trigger animate if it stopped, though our new loop runs always
-        }
-
-        function gameOver(reason) {
-            isPlaying = false;
-            finalScoreVal.innerText = score;
-            deathReason.innerText = reason;
-            
-            const title = document.querySelector('#game-over-screen h1');
-            
-            // BROWN BEAR UNLOCK CHECK
-            if (player.color === '#8B4513') {
-                title.innerText = "Back to the field!";
-                verdictBox.style.display = 'none';
-                
-                // Check for unlock condition
-                if (score >= 1000 && !isSecretUnlocked) {
-                    unlockSecret();
+            getVector() {
+                let vx = 0, vy = 0;
+                if (this.joystick.active) {
+                    vx = this.joystick.vecX; vy = this.joystick.vecY;
+                } else {
+                    if (this.keys.ArrowUp || this.keys.w || this.keys.W) vy -= 1;
+                    if (this.keys.ArrowDown || this.keys.s || this.keys.S) vy += 1;
+                    if (this.keys.ArrowLeft || this.keys.a || this.keys.A) vx -= 1;
+                    if (this.keys.ArrowRight || this.keys.d || this.keys.D) vx += 1;
                 }
-            } else {
-                title.innerText = "YOU GOT GROUNDED!";
-                verdictBox.style.display = 'block';
-                verdictBox.innerText = getOfflineVerdict();
-            }
-
-            gameOverScreen.classList.remove('hidden');
-            
-            if (score > highScore) {
-                highScore = score;
-                highScoreEl.innerText = highScore;
-                saveLocalHighScore(highScore);
+                return { x: vx, y: vy };
             }
         }
 
-        // --- UPDATE LOOP ---
-        function update() {
-            if (isPaused) return;
-            // REMOVED: frames++; (Fixed double-speed bug)
-            
-            // Timers
-            if (multiplierTimer > 0) {
-                multiplierTimer--;
-                if (multiplierTimer === 0) scoreMultiplier = 1;
+        // --- ENTITIES ---
+        class Particle {
+            constructor(x, y, color, speed = 10, size = 5) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * speed;
+                this.vy = (Math.random() - 0.5) * speed;
+                this.life = 30 + Math.random() * 20;
+                this.color = color;
+                this.size = Math.random() * size + 2;
             }
-            if (slowTimer > 0) slowTimer--;
-            if (slowCooldown > 0) slowCooldown--;
-            
-            // Combo Decay
-            if (comboCount > 0) {
-                comboTimer--;
-                if (comboTimer <= 0) {
-                    comboCount = 0;
-                    comboDisplay.innerText = "";
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life--; this.size *= 0.95;
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.color; ctx.beginPath(); 
+                ctx.arc(this.x, this.y, Math.max(0, this.size), 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        class Player {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = 0; this.vy = 0;
+                this.radius = 20;
+                this.color = color;
+                this.shield = 0;
+                this.isDashing = false;
+                this.dashTimer = 0;
+                this.dashCooldown = 0;
+            }
+
+            update(input) {
+                // Dash Timer
+                if (this.dashCooldown > 0) this.dashCooldown--;
+                if (this.isDashing) {
+                    this.dashTimer--;
+                    Game.instance.particles.add(this.x, this.y, this.color, 1);
+                    if (this.dashTimer <= 0) this.isDashing = false;
                 }
-            }
-            
-            // Dash Logic
-            if (player.dashCooldown > 0) player.dashCooldown--;
-            if (player.isDashing) {
-                player.dashTimer--;
-                createParticles(player.x, player.y, player.color, 1); 
-                if (player.dashTimer <= 0) player.isDashing = false;
-            }
-            
-            // Shake Decay
-            if (shakeAmount > 0) shakeAmount *= 0.9;
-            if (shakeAmount < 0.5) shakeAmount = 0;
 
-            // Player Movement
-            if (joystick.active) {
-                player.vx += joystick.vectorX * player.acceleration;
-                player.vy += joystick.vectorY * player.acceleration;
-            } else {
-                if (keys.ArrowUp || keys.w || keys.W) player.vy -= player.acceleration;
-                if (keys.ArrowDown || keys.s || keys.S) player.vy += player.acceleration;
-                if (keys.ArrowLeft || keys.a || keys.A) player.vx -= player.acceleration;
-                if (keys.ArrowRight || keys.d || keys.D) player.vx += player.acceleration;
-            }
-
-            // Friction (Less if dashing)
-            const fric = player.isDashing ? 0.95 : player.friction;
-            player.vx *= fric;
-            player.vy *= fric;
-
-            // Cap Speed (Ignore cap if dashing)
-            if (!player.isDashing) {
-                const currentSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-                if (currentSpeed > player.maxSpeed) {
-                    const ratio = player.maxSpeed / currentSpeed;
-                    player.vx *= ratio;
-                    player.vy *= ratio;
+                // Physics
+                const inputVec = input.getVector();
+                if(inputVec.x || inputVec.y) {
+                    this.vx += inputVec.x * CONFIG.PHYSICS.ACCELERATION;
+                    this.vy += inputVec.y * CONFIG.PHYSICS.ACCELERATION;
                 }
-            }
 
-            player.x += player.vx;
-            player.y += player.vy;
+                // Friction & Cap
+                const fric = this.isDashing ? 0.95 : CONFIG.PHYSICS.FRICTION;
+                this.vx *= fric; this.vy *= fric;
 
-            // Boundaries
-            if (player.x < player.radius) { player.x = player.radius; player.vx *= -0.5; }
-            if (player.x > canvas.width - player.radius) { player.x = canvas.width - player.radius; player.vx *= -0.5; }
-            if (player.y < player.radius) { player.y = player.radius; player.vy *= -0.5; }
-            if (player.y > canvas.height - player.radius) { player.y = canvas.height - player.radius; player.vy *= -0.5; }
-
-            // Energy Decay
-            if(godMode) {
-                energy = 100;
-            } else {
-                energy -= 0.05 + (difficulty * 0.003);
-            }
-            
-            if (energy <= 0) {
-                energy = 0;
-                gameOver("You fell asleep standing up...");
-                return;
-            }
-            energyBar.style.width = energy + '%';
-            
-            if (energy < 25) {
-                energyBar.classList.add('critical');
-                document.querySelector('.energy-label').style.color = '#ff0000';
-            } else {
-                energyBar.classList.remove('critical');
-                document.querySelector('.energy-label').style.color = '#ffff00';
-            }
-
-            // Spawners
-            if (frames % Math.max(50, 140 - difficulty) === 0) spawnEnemy();
-            if (frames % 120 === 0) spawnDrink();
-            if (frames % 1200 === 0) spawnDrink('multiplier');
-
-            // --- COLLISIONS ---
-            for (let i = drinks.length - 1; i >= 0; i--) {
-                let d = drinks[i];
-                d.life--;
-                if(d.scale < 1) d.scale += 0.1;
-
-                const dx = player.x - d.x;
-                const dy = player.y - d.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-
-                if (dist < player.radius + d.size) {
-                    comboCount++;
-                    comboTimer = MAX_COMBO_TIMER;
-                    comboDisplay.innerText = `COMBO x${comboCount}!`;
-                    createFloatText(d.x, d.y, `x${comboCount}`, '#fff');
-
-                    if (d.type === 'shield') {
-                        player.shield = Math.min(5, player.shield + 3); 
-                        createParticles(d.x, d.y, '#00ccff', 15);
-                        addScore(50);
-                    } else if (d.type === 'mega') {
-                        triggerMegaBlast();
-                    } else if (d.type === 'multiplier') {
-                        scoreMultiplier = 2;
-                        multiplierTimer = 300; 
-                        createParticles(d.x, d.y, '#FFD700', 20);
-                        addScore(50);
-                        createFloatText(d.x, d.y, "X2 SCORE!", "#FFD700");
-                    } else if (d.type === 'slow') {
-                        slowTimer = 900;
-                        slowCooldown = 4500;
-                        createParticles(d.x, d.y, '#00FFFF', 20);
-                        addScore(50);
-                    } else {
-                        energy = Math.min(100, energy + 20); 
-                        addScore(50); 
-                        createParticles(d.x, d.y, '#ffff00', 10);
+                if (!this.isDashing) {
+                    const speed = Math.sqrt(this.vx**2 + this.vy**2);
+                    if (speed > CONFIG.PHYSICS.MAX_SPEED) {
+                        const ratio = CONFIG.PHYSICS.MAX_SPEED / speed;
+                        this.vx *= ratio; this.vy *= ratio;
                     }
+                }
+
+                this.x += this.vx; this.y += this.vy;
+
+                // Bounds
+                const maxW = Game.instance.width;
+                const maxH = Game.instance.height;
+                if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
+                if (this.x > maxW - this.radius) { this.x = maxW - this.radius; this.vx *= -0.5; }
+                if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.5; }
+                if (this.y > maxH - this.radius) { this.y = maxH - this.radius; this.vy *= -0.5; }
+            }
+
+            tryDash() {
+                if (this.dashCooldown <= 0 && (Game.instance.energy >= CONFIG.PHYSICS.DASH_COST || Game.instance.godMode)) {
+                    if (!Game.instance.godMode) Game.instance.energy -= CONFIG.PHYSICS.DASH_COST;
+                    this.isDashing = true;
+                    this.dashTimer = 15;
+                    this.dashCooldown = CONFIG.PHYSICS.DASH_COOLDOWN;
                     
-                    drinks.splice(i, 1);
-                } else if (d.life <= 0) {
-                    drinks.splice(i, 1);
+                    let len = Math.sqrt(this.vx**2 + this.vy**2);
+                    if (len < 0.1) { this.vx = 0.1; len = 0.1; }
+                    this.vx = (this.vx / len) * CONFIG.PHYSICS.DASH_SPEED;
+                    this.vy = (this.vy / len) * CONFIG.PHYSICS.DASH_SPEED;
+
+                    Game.instance.shake = 5;
+                    Game.instance.particles.burst(this.x, this.y, '#fff', 10);
                 }
             }
 
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
                 
-                const dx = player.x - e.x;
-                const dy = player.y - e.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
+                // Visual FX
+                if (this.shield > 0) { ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.strokeStyle='cyan'; ctx.stroke(); }
+                if (this.isDashing) { ctx.beginPath(); ctx.arc(0,0,25,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fill(); }
                 
-                let angle = Math.atan2(dy, dx);
-                angle += Math.sin(frames * 0.05 + e.wobbleOffset) * 0.5;
+                ctx.rotate(this.vx * 0.1);
 
-                let effectiveSpeed = e.speed;
-                if (slowTimer > 0) effectiveSpeed *= 0.5;
-
-                e.x += Math.cos(angle) * effectiveSpeed;
-                e.y += Math.sin(angle) * effectiveSpeed;
-
-                if (dist < player.radius + e.size - 5) {
-                    // GOD MODE IN DEV MODE
-                    if (player.isDashing || godMode) {
-                        createParticles(e.x, e.y, '#ffaa00', 20);
-                        shakeAmount = 10;
-                        addScore(100);
-                        createFloatText(e.x, e.y, godMode && !player.isDashing ? "GOD MODE!" : "DASH HIT!", "#ffaa00");
-                        enemies.splice(i, 1);
-                    } else if (player.shield > 0) {
-                        player.shield--;
-                        createParticles(e.x, e.y, '#00ccff', 20); 
-                        createParticles(e.x, e.y, '#ff0000', 10); 
-                        enemies.splice(i, 1);
-                        shakeAmount = 5;
-                    } else if (slowTimer > 0) {
-                        createParticles(e.x, e.y, '#00FFFF', 20);
-                        createParticles(e.x, e.y, '#ff0000', 10);
-                        enemies.splice(i, 1);
-                        addScore(150);
-                        shakeAmount = 5;
-                    } else {
-                        if (player.color === '#8B4513') {
-                            gameOver("Master caught you!");
-                        } else {
-                            gameOver("Parent caught you! GROUNDED!");
-                        }
-                        return;
-                    }
-                }
-            }
-
-            // Cleanup
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.life--; p.size *= 0.95;
-                if(p.life <= 0) particles.splice(i, 1);
-            }
-            for (let i = shockwaves.length - 1; i >= 0; i--) {
-                let s = shockwaves[i];
-                s.r += 20; s.alpha -= 0.05;
-                if(s.alpha <= 0) shockwaves.splice(i, 1);
-            }
-            for (let i = floatTexts.length - 1; i >= 0; i--) {
-                let f = floatTexts[i];
-                f.y += f.vy; f.life--;
-                if(f.life <= 0) floatTexts.splice(i, 1);
-            }
-        }
-
-        // --- DRAW ---
-        function drawBackgroundGrid(offset = 0) {
-            // Grid removed
-        }
-
-        function drawEntity(x, y, type, scale=1) {
-             // Reusable entity drawer for menu preview
-             // Just draws a simple bear or drink at coords
-             ctx.save();
-             ctx.translate(x, y);
-             ctx.scale(scale, scale);
-             
-             if(type === 'bear') {
-                ctx.fillStyle = player.color;
-                ctx.beginPath(); ctx.arc(-12,-12,8,0,Math.PI*2); ctx.arc(12,-12,8,0,Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle = (player.color === '#00cc44') ? '#00aa33' : '#DDD';
-                ctx.beginPath(); ctx.ellipse(0,5,8,6,0,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle = (player.color === '#00cc44') ? '#004400' : '#111';
+                // Body
+                ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(-12, -12, 8, 0, Math.PI*2); ctx.arc(12, -12, 8, 0, Math.PI*2); ctx.fill(); // Ears
+                ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill(); // Head
+                
+                // Snout
+                ctx.fillStyle = (this.color === CONFIG.COLORS.GREEN) ? '#00aa33' : '#DDD';
+                if(this.color === '#8B4513') ctx.fillStyle = '#6d340d';
+                ctx.beginPath(); ctx.ellipse(0, 5, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+                
+                // Nose
+                ctx.fillStyle = '#111';
                 ctx.beginPath(); ctx.arc(0, 3, 3, 0, Math.PI*2); ctx.fill();
+                
+                // Eyes
                 ctx.fillStyle = 'white';
                 ctx.beginPath(); ctx.arc(-6, -4, 5, 0, Math.PI*2); ctx.arc(6, -4, 5, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = 'black';
                 ctx.beginPath(); ctx.arc(-6, -4, 2, 0, Math.PI*2); ctx.arc(6, -4, 2, 0, Math.PI*2); ctx.fill();
-             }
-             ctx.restore();
-        }
 
-        function drawMenuBackground() {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // drawBackgroundGrid(); // Removed grid
-            
-            // Draw floating particles in background for menu vibes
-            if (frames % 20 === 0) {
-                 createParticles(Math.random()*canvas.width, canvas.height + 20, '#222', 1);
-            }
-            
-            particles.forEach(p => {
-                ctx.fillStyle = 'rgba(50,50,50,0.5)';
-                p.y -= 1; // float up
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-                ctx.fill();
-            });
-            
-            // Draw Player Preview in center (behind menu)
-            player.color = selectedColor;
-            
-            // Bobbing animation for player on menu
-            const bob = Math.sin(frames * 0.05) * 5;
-            drawEntity(canvas.width/2, canvas.height/2 + bob, 'bear', 1.5);
-            
-            // Update particles for menu animation
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                if(p.y < -10) particles.splice(i, 1);
-            }
-        }
-
-        function draw() {
-            ctx.save();
-            
-            // Apply Screen Shake
-            if (shakeAmount > 0) {
-                const sx = (Math.random() - 0.5) * shakeAmount;
-                const sy = (Math.random() - 0.5) * shakeAmount;
-                ctx.translate(sx, sy);
-            }
-            
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // drawBackgroundGrid(); // Removed grid
-
-            // Entities
-            shockwaves.forEach(s => {
-                ctx.save(); ctx.beginPath(); ctx.arc(player.x, player.y, s.r, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 255, 255, ${s.alpha})`; ctx.lineWidth = 10; ctx.stroke(); ctx.restore();
-            });
-
-            particles.forEach(p => {
-                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-            });
-
-            drinks.forEach(d => {
-                ctx.save(); ctx.translate(d.x, d.y); ctx.scale(d.scale, d.scale);
-                
-                // CHANGE: No bobbing. Only shake when expiring (last 3 seconds / 180 frames)
-                if (d.life < 180) {
-                    ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
-                }
-                
-                // REDUCED VISUAL SIZE: w 24->16, h 36->24
-                const w = 16, h = 24;
-                
-                let bodyColor = '#222', lidColor = '#00ff00', label = 'E';
-                if (d.type === 'shield') { bodyColor='#0077aa'; lidColor='#00ccff'; label='S'; }
-                else if (d.type === 'mega') { bodyColor='#aa00aa'; lidColor='#ff00ff'; label='M'; }
-                else if (d.type === 'multiplier') { bodyColor='#DAA520'; lidColor='#FFD700'; label='X2'; }
-                else if (d.type === 'slow') { bodyColor='#008B8B'; lidColor='#00FFFF'; label='❄️'; }
-
-                if (d.type === 'watermelon') {
-                     const r = 12; // Reduced watermelon size
-                     ctx.fillStyle = '#00aa00'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI, false); ctx.fill();
-                     ctx.fillStyle = '#ff3333'; ctx.beginPath(); ctx.arc(0, 0, r - 4, 0, Math.PI, false); ctx.fill();
-                     ctx.fillStyle = 'black'; 
-                     [-3,0,3].forEach(off => { ctx.beginPath(); ctx.arc(off, 4, 1.2, 0, Math.PI*2); ctx.fill(); });
-                } else {
-                    if (d.type === 'multiplier' || d.type === 'slow') {
-                        ctx.strokeStyle = lidColor; ctx.lineWidth = 2; ctx.globalAlpha = 0.6 + Math.sin(frames * 0.1) * 0.4;
-                        ctx.strokeRect(-w/2-3, -h/2-3, w+6, h+6); ctx.globalAlpha = 1;
-                    }
-                    if (d.type === 'normal') {
-                         ctx.fillStyle = '#102d78'; ctx.fillRect(-w/2, -h/2, w, h);
-                         ctx.fillStyle = '#d4d8db'; ctx.fillRect(-w/2, -h/2, w/2, h/2); ctx.fillRect(0, 0, w/2, h/2);
-                    } else {
-                         ctx.fillStyle = bodyColor; ctx.fillRect(-w/2, -h/2, w, h);
-                    }
-                    ctx.fillStyle = '#ccc'; ctx.beginPath(); ctx.ellipse(0, -h/2, w/2, 3, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-                    ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.ellipse(0, h/2, w/2, 3, 0, 0, Math.PI, 0); ctx.fill();
-                    // Smaller font for smaller can
-                    ctx.fillStyle = lidColor; ctx.font = '8px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, 0, 0);
-                }
                 ctx.restore();
-            });
+            }
+        }
 
-            enemies.forEach(e => {
-                ctx.save(); ctx.translate(e.x, e.y);
-                
-                // Store flip state so we can un-flip text later
-                const isFlipped = player.x < e.x;
-                if (isFlipped) ctx.scale(-1, 1);
-                
-                if (slowTimer > 0) { ctx.shadowColor = '#00FFFF'; ctx.shadowBlur = 10; }
+        class Enemy {
+            constructor(x, y, type, nagList) {
+                this.x = x; this.y = y;
+                this.type = type;
+                this.size = 18;
+                this.speed = Utils.rand(0.3, 0.7);
+                this.angle = 0;
+                this.nag = Utils.randItem(nagList);
+                this.nagTimer = Utils.rand(0, 300);
+                this.wobble = Math.random() * Math.PI * 2;
+            }
 
-                if (e.type === 'triangle') {
-                    // BROWN BEAR ENEMY (Triangle - Unchanged)
+            update(targetX, targetY) {
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                let angle = Math.atan2(dy, dx);
+                angle += Math.sin(Game.instance.frames * 0.05 + this.wobble) * 0.5;
+
+                let spd = this.speed;
+                if(Game.instance.slowTimer > 0) spd *= 0.5;
+
+                this.x += Math.cos(angle) * spd;
+                this.y += Math.sin(angle) * spd;
+            }
+
+            draw(ctx, playerX) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                if (playerX < this.x) ctx.scale(-1, 1);
+                
+                if (Game.instance.slowTimer > 0) { ctx.shadowColor = '#00FFFF'; ctx.shadowBlur = 10; }
+
+                if (this.type === 'triangle') {
+                    // Brown Bear Enemy
                     ctx.fillStyle = '#FFF'; ctx.strokeStyle='#999'; ctx.lineWidth=2;
-                    ctx.beginPath(); ctx.moveTo(0, -e.size-5); ctx.lineTo(e.size, e.size); ctx.lineTo(-e.size, e.size); ctx.closePath();
+                    ctx.beginPath(); ctx.moveTo(0, -this.size-5); ctx.lineTo(this.size, this.size); ctx.lineTo(-this.size, this.size); ctx.closePath();
                     ctx.fill(); ctx.stroke();
                     ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(-6,2,3,0,Math.PI*2); ctx.arc(6,2,3,0,Math.PI*2); ctx.fill();
                 } else {
-                    // STANDARD FAMILY SHAPE (Circle Base for Everyone)
+                    // Family Members
+                    const colors = { dad: '#BBB', mom: '#d68a8a', grandma: '#a8b9bf', uncle: '#556B2F', cousin: '#CD5C5C', neighbor: '#9370DB' };
+                    ctx.fillStyle = colors[this.type] || '#BBB';
                     
-                    // Set Color based on Type
-                    if (e.type === 'dad') ctx.fillStyle = '#BBB';
-                    else if (e.type === 'mom') ctx.fillStyle = '#d68a8a';
-                    else if (e.type === 'grandma') ctx.fillStyle = '#a8b9bf';
-                    else if (e.type === 'uncle') ctx.fillStyle = '#556B2F'; // Olive
-                    else if (e.type === 'cousin') ctx.fillStyle = '#CD5C5C'; // Red
-                    else if (e.type === 'neighbor') ctx.fillStyle = '#9370DB'; // Purple
-                    else ctx.fillStyle = '#BBB';
-
-                    // Draw Round Head (Common for all non-brown-bear enemies)
-                    ctx.beginPath(); ctx.arc(0,0,e.size,0,Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0,0,this.size,0,Math.PI*2); ctx.fill(); ctx.stroke();
                     
-                    // --- UNIQUE FEATURES ---
-
-                    if (e.type === 'mom') {
-                        // Hair Bun
-                        ctx.fillStyle = '#d68a8a';
-                        ctx.beginPath(); ctx.arc(0, -e.size+2, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    if (this.type === 'mom') {
+                        ctx.fillStyle = colors.mom;
+                        ctx.beginPath(); ctx.arc(0, -this.size+2, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
                     }
-                    
-                    if (e.type === 'grandma') {
-                        // White hair top
-                        ctx.fillStyle = '#fff';
-                        ctx.beginPath(); ctx.arc(0, 0, e.size-1, Math.PI, 0); ctx.fill();
+                    if (this.type === 'grandma') {
+                         ctx.fillStyle = '#fff';
+                         ctx.beginPath(); ctx.arc(0, 0, this.size-1, Math.PI, 0); ctx.fill();
                     }
 
-                    // Common Face Features (Eyes)
                     ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(-7,-2,4,0,Math.PI*2); ctx.arc(7,-2,4,0,Math.PI*2); ctx.fill();
                     ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(-7,-2,2,0,Math.PI*2); ctx.arc(7,-2,2,0,Math.PI*2); ctx.fill();
-
-                    // Glasses (For Dad, Mom, Grandma, Uncle)
-                    if (['dad', 'mom', 'grandma', 'uncle'].includes(e.type)) {
+                    
+                    if (['dad', 'mom', 'grandma', 'uncle'].includes(this.type)) {
                         ctx.strokeStyle='#333'; ctx.lineWidth=1.5; 
                         ctx.beginPath(); ctx.arc(-7,-2,6,0,Math.PI*2); ctx.arc(7,-2,6,0,Math.PI*2); ctx.stroke();
                     }
-
-                    if (e.type === 'uncle') {
-                        // Bushy Eyebrows
-                        ctx.strokeStyle='#000'; ctx.lineWidth=3; 
-                        ctx.beginPath(); ctx.moveTo(-10, -8); ctx.lineTo(-2, -8); ctx.stroke();
+                    
+                    ctx.strokeStyle = '#000'; ctx.lineWidth=2; ctx.beginPath();
+                    if (this.type === 'uncle') {
+                         // Bushy Eyebrows
+                        ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-10, -8); ctx.lineTo(-2, -8); ctx.stroke();
                         ctx.beginPath(); ctx.moveTo(2, -8); ctx.lineTo(10, -8); ctx.stroke();
                         // Frown
                         ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-5, 10); ctx.lineTo(5, 10); ctx.stroke();
-                    } 
-                    else if (e.type === 'cousin') {
-                        // Big Smile
-                        ctx.strokeStyle='#000'; ctx.lineWidth=2; 
+                    } else if (this.type === 'cousin') {
                         ctx.beginPath(); ctx.arc(0, 5, 5, 0, Math.PI); ctx.stroke();
-                    }
-                    else if (e.type === 'neighbor') {
-                        // O-Mouth (Surprised)
-                        ctx.strokeStyle='#000'; ctx.lineWidth=2; 
+                    } else if (this.type === 'neighbor') {
                         ctx.beginPath(); ctx.arc(0, 8, 3, 0, Math.PI*2); ctx.stroke();
-                    }
-                    else {
-                        // Default Mouth/Expression (Dad, Mom, Grandma)
-                        ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0, 10, 6, Math.PI, 2*Math.PI); ctx.stroke();
+                    } else {
+                        ctx.beginPath(); ctx.arc(0, 10, 6, Math.PI, 2*Math.PI); ctx.stroke();
                     }
 
-                    // Dad Tie
-                    if (e.type === 'dad') {
-                        ctx.fillStyle = '#cc0000';
-                        ctx.beginPath(); ctx.moveTo(0, e.size-5); ctx.lineTo(-3, e.size+5); ctx.lineTo(3, e.size+5); ctx.fill();
+                    if (this.type === 'dad') {
+                        ctx.fillStyle = '#cc0000'; ctx.beginPath(); 
+                        ctx.moveTo(0, this.size-5); ctx.lineTo(-3, this.size+5); ctx.lineTo(3, this.size+5); ctx.fill();
                     }
+                }
+
+                if (Game.instance.frames % 600 > this.nagTimer && Game.instance.frames % 600 < this.nagTimer + 240) {
+                    if (playerX < this.x) ctx.scale(-1, 1);
+                    ctx.font = '10px Arial'; ctx.fillStyle = 'white'; ctx.textAlign = 'center'; 
+                    ctx.fillText(this.nag, 0, -this.size-10);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class Drink {
+            constructor(x, y, type) {
+                this.x = x; this.y = y;
+                this.type = type; 
+                this.size = 15;
+                this.life = 1000;
+                this.scale = 0;
+            }
+            update() {
+                if(this.scale < 1) this.scale += 0.1;
+                this.life--;
+            }
+            draw(ctx) {
+                ctx.save(); ctx.translate(this.x, this.y); ctx.scale(this.scale, this.scale);
+                
+                // RESTORED DESIGN: Shake only on expire
+                if (this.life < 180) ctx.translate((Math.random()-0.5)*3, (Math.random()-0.5)*3); 
+                
+                const w = 16, h = 24;
+                const colors = {
+                    normal: ['#102d78', '#00ff00', 'E'],
+                    shield: ['#0077aa', '#00ccff', 'S'],
+                    mega: ['#aa00aa', '#ff00ff', 'M'],
+                    multiplier: ['#DAA520', '#FFD700', 'X2'],
+                    slow: ['#008B8B', '#00FFFF', '❄️'],
+                    watermelon: ['#00aa00', '#ff3333', '']
+                };
+                const style = colors[this.type] || colors.normal;
+
+                if (this.type === 'watermelon') {
+                    ctx.fillStyle = style[0]; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI, false); ctx.fill();
+                    ctx.fillStyle = style[1]; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI, false); ctx.fill();
+                    ctx.fillStyle = 'black'; [-3,0,3].forEach(o=> { ctx.beginPath(); ctx.arc(o, 4, 1, 0, Math.PI*2); ctx.fill(); });
+                } else {
+                    // RESTORED DESIGN: Glowing Aura for Specials
+                     if (this.type === 'multiplier' || this.type === 'slow') {
+                        ctx.strokeStyle = style[1]; ctx.lineWidth = 2; 
+                        ctx.globalAlpha = 0.6 + Math.sin(Game.instance.frames * 0.1) * 0.4;
+                        ctx.strokeRect(-w/2-3, -h/2-3, w+6, h+6); 
+                        ctx.globalAlpha = 1;
+                    }
+
+                    // RESTORED DESIGN: Specific Checkerboard for Normal
+                    if (this.type === 'normal') {
+                        ctx.fillStyle = '#102d78'; ctx.fillRect(-w/2, -h/2, w, h);
+                        ctx.fillStyle = '#d4d8db'; ctx.fillRect(-w/2, -h/2, w/2, h/2); ctx.fillRect(0, 0, w/2, h/2);
+                    } else {
+                        ctx.fillStyle = style[0]; ctx.fillRect(-w/2, -h/2, w, h);
+                    }
+
+                    // RESTORED DESIGN: Rounded Bottoms
+                    ctx.fillStyle = '#ccc'; ctx.beginPath(); ctx.ellipse(0, -h/2, w/2, 3, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = (this.type === 'normal') ? '#102d78' : style[0]; // Body Color for bottom curve
+                    if(this.type === 'normal') ctx.fillStyle = '#102d78'; // Override for checkerboard bottom
+                    
+                    ctx.beginPath(); ctx.ellipse(0, h/2, w/2, 3, 0, 0, Math.PI, 0); ctx.fill();
+                    
+                    ctx.fillStyle = style[1]; ctx.font = '8px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(style[2], 0, 0);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // --- MANAGERS ---
+        class ParticleSystem {
+            constructor() {
+                this.list = [];
+                this.floats = [];
+                this.shockwaves = [];
+            }
+            add(x, y, color, count=1) {
+                for(let i=0; i<count; i++) this.list.push(new Particle(x, y, color));
+            }
+            burst(x, y, color, count=10) { this.add(x, y, color, count); }
+            addFloat(x, y, text, color) { this.floats.push({x, y, text, color, life: 60, vy: -1}); }
+            addShockwave(x, y) { this.shockwaves.push({x, y, r:0, alpha:1}); }
+
+            updateAndDraw(ctx) {
+                // Particles
+                for (let i = this.list.length - 1; i >= 0; i--) {
+                    let p = this.list[i];
+                    p.update(); p.draw(ctx);
+                    if(p.life <= 0) this.list.splice(i, 1);
+                }
+                // Floating Text
+                for (let i = this.floats.length - 1; i >= 0; i--) {
+                    let f = this.floats[i];
+                    f.y += f.vy; f.life--;
+                    if(f.life <= 0) { this.floats.splice(i, 1); continue; }
+                    ctx.font = 'bold 12px Arial'; ctx.fillStyle = f.color;
+                    ctx.globalAlpha = f.life/60; ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
+                }
+                // Shockwaves
+                for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+                    let s = this.shockwaves[i];
+                    s.r += 20; s.alpha -= 0.05;
+                    if(s.alpha <= 0) { this.shockwaves.splice(i, 1); continue; }
+                    ctx.save(); ctx.beginPath(); ctx.arc(Game.instance.player.x, Game.instance.player.y, s.r, 0, Math.PI*2);
+                    ctx.strokeStyle = `rgba(255,255,255,${s.alpha})`; ctx.lineWidth=10; ctx.stroke(); ctx.restore();
+                }
+            }
+            clear() { this.list = []; this.floats = []; this.shockwaves = []; }
+        }
+
+        class Spawner {
+            constructor() { this.frames = 0; }
+            update() {
+                this.frames++;
+                if (this.frames % Math.max(50, CONFIG.GAME.SPAWN_RATE_ENEMY - Game.instance.difficulty) === 0) this.spawnEnemy();
+                if (this.frames % CONFIG.GAME.SPAWN_RATE_DRINK === 0) this.spawnDrink();
+                if (this.frames % 1200 === 0) this.spawnDrink('multiplier');
+            }
+            spawnEnemy() {
+                const g = Game.instance;
+                const edge = Math.floor(Math.random() * 4);
+                let x, y, buf = 50;
+                if (edge===0) { x = Utils.rand(0, g.width); y = -buf; }
+                else if (edge===1) { x = g.width + buf; y = Utils.rand(0, g.height); }
+                else if (edge===2) { x = Utils.rand(0, g.width); y = g.height + buf; }
+                else { x = -buf; y = Utils.rand(0, g.height); }
+
+                let type = 'dad';
+                let nags = STRINGS.NAGS;
+
+                if (g.player.color === '#8B4513') {
+                    type = 'triangle'; nags = STRINGS.NAGS_BROWN;
+                } else {
+                    const types = ['dad', 'mom', 'grandma', 'uncle', 'cousin', 'neighbor'];
+                    type = Utils.randItem(types);
+                }
+                g.enemies.push(new Enemy(x, y, type, nags));
+            }
+            spawnDrink(forcedType) {
+                const g = Game.instance;
+                const margin = 50;
+                const x = Utils.rand(margin, g.width - margin);
+                const y = Utils.rand(margin, g.height - margin);
+                let type = forcedType || 'normal';
+                
+                if (!forcedType) {
+                    const r = Math.random();
+                    if (r > 0.95) type = 'mega';
+                    else if (r > 0.90) type = 'shield';
+                    else if (r > 0.85 && g.slowCooldown <= 0) type = 'slow';
+                }
+                if (g.player.color === '#8B4513') type = 'watermelon';
+                g.drinks.push(new Drink(x, y, type));
+            }
+        }
+
+        // --- CORE GAME ENGINE ---
+        class Game {
+            constructor() {
+                Game.instance = this;
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                
+                this.input = new InputHandler();
+                this.particles = new ParticleSystem();
+                this.spawner = new Spawner();
+                
+                this.player = new Player(this.width/2, this.height/2, '#00cc44');
+                this.enemies = [];
+                this.drinks = [];
+                
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.devMode = false;
+                this.godMode = false;
+                
+                this.score = 0;
+                this.highScore = localStorage.getItem('crush_hs') || 0;
+                this.frames = 0;
+                this.energy = 100;
+                this.difficulty = 1;
+                this.shake = 0;
+                
+                this.combo = 0;
+                this.comboTimer = 0;
+                this.multiplier = 1;
+                this.multiplierTimer = 0;
+                this.slowTimer = 0;
+                this.slowCooldown = 0;
+
+                this.secretUnlocked = localStorage.getItem('crush_secret') === 'true';
+
+                this.ui = {
+                    score: document.getElementById('score-val'),
+                    highScore: document.getElementById('high-score-val'),
+                    combo: document.getElementById('combo-display'),
+                    energy: document.getElementById('energy-bar'),
+                    screens: {
+                        start: document.getElementById('start-screen'),
+                        pause: document.getElementById('pause-screen'),
+                        gameOver: document.getElementById('game-over-screen'),
+                        howTo: document.getElementById('how-to-screen'),
+                        menuContent: document.getElementById('main-menu-content')
+                    },
+                    dev: document.getElementById('dev-indicator')
+                };
+                
+                this.ui.highScore.innerText = this.highScore;
+                this.bindUI();
+                if(this.secretUnlocked) this.unlockSecretVisuals();
+
+                this.loop();
+            }
+
+            resize() {
+                this.width = this.canvas.width = window.innerWidth;
+                this.height = this.canvas.height = window.innerHeight;
+            }
+
+            bindUI() {
+                document.getElementById('start-btn').onclick = () => this.start();
+                document.getElementById('restart-btn').onclick = () => this.start();
+                document.getElementById('pause-btn').onclick = () => this.togglePause();
+                document.getElementById('resume-btn').onclick = () => this.togglePause();
+                document.getElementById('quit-btn').onclick = () => this.toMenu();
+                document.getElementById('go-menu-btn').onclick = () => this.toMenu();
+                
+                document.getElementById('how-to-btn').onclick = () => {
+                   this.ui.screens.menuContent.classList.add('hidden');
+                   this.ui.screens.howTo.classList.remove('hidden');
+                };
+                document.getElementById('back-menu-btn').onclick = () => {
+                   this.ui.screens.howTo.classList.add('hidden');
+                   this.ui.screens.menuContent.classList.remove('hidden');
+                };
+
+                document.querySelectorAll('.bear-option-wrapper').forEach(opt => {
+                    opt.onclick = (e) => {
+                        e.stopPropagation();
+                        if (opt.classList.contains('locked')) return;
+                        document.querySelectorAll('.bear-option-wrapper').forEach(o => o.classList.remove('selected'));
+                        opt.classList.add('selected');
+                        this.player.color = opt.dataset.color;
+                    };
+                });
+                
+                let clicks = 0;
+                document.querySelector('.title-container').onclick = () => {
+                    clicks++;
+                    if(clicks >= 5) { this.toggleDevMode(); clicks = 0; }
+                };
+            }
+
+            start() {
+                this.isPlaying = true; this.isPaused = false;
+                this.score = 0; this.energy = 100; this.frames = 0; this.difficulty = 1;
+                this.combo = 0; this.multiplier = 1;
+                
+                this.player.x = this.width/2; this.player.y = this.height/2;
+                this.player.vx = 0; this.player.vy = 0;
+                this.player.shield = 0;
+                
+                this.enemies = []; this.drinks = [];
+                this.particles.clear();
+                
+                this.ui.screens.start.classList.add('hidden');
+                this.ui.screens.gameOver.classList.add('hidden');
+                this.ui.screens.pause.classList.add('hidden');
+                this.ui.energy.style.width = '100%';
+                
+                this.spawner.spawnDrink();
+                this.spawner.spawnDrink();
+            }
+
+            toMenu() {
+                this.isPlaying = false; this.isPaused = false;
+                this.ui.screens.start.classList.remove('hidden');
+                this.ui.screens.gameOver.classList.add('hidden');
+                this.ui.screens.pause.classList.add('hidden');
+            }
+
+            togglePause() {
+                if(!this.isPlaying) return;
+                this.isPaused = !this.isPaused;
+                this.ui.screens.pause.classList.toggle('hidden', !this.isPaused);
+            }
+
+            gameOver(reason) {
+                this.isPlaying = false;
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('crush_hs', this.highScore);
+                    this.ui.highScore.innerText = this.highScore;
                 }
                 
-                if (e.nag && frames % 600 > e.nagTimer && frames % 600 < e.nagTimer + 240) {
-                    ctx.save();
-                    // If enemy is flipped, flip text back to normal so it's readable
-                    if (isFlipped) ctx.scale(-1, 1);
-                    ctx.font = '10px Arial'; ctx.fillStyle = 'white'; ctx.textAlign = 'center'; 
-                    ctx.fillText(e.nag, 0, -e.size-10);
-                    ctx.restore();
+                const title = document.getElementById('go-title');
+                const verdict = document.getElementById('ai-verdict-box');
+                
+                if (this.player.color === '#8B4513') {
+                    title.innerText = "BACK TO WORK!";
+                    verdict.style.display = 'none';
+                    if (this.score >= 1000 && !this.secretUnlocked) {
+                        this.secretUnlocked = true;
+                        localStorage.setItem('crush_secret', 'true');
+                        alert("✨ GOLDEN BEAR UNLOCKED! ✨");
+                        this.unlockSecretVisuals();
+                    }
+                } else {
+                    title.innerText = "YOU GOT GROUNDED!";
+                    verdict.style.display = 'block';
+                    verdict.innerText = Utils.randItem(STRINGS.VERDICTS);
                 }
-                ctx.restore();
-            });
 
-            // Player
-            ctx.save();
-            ctx.translate(player.x, player.y);
-            
-            if (player.shield > 0) { ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.strokeStyle = '#00ccff'; ctx.lineWidth=3; ctx.stroke(); }
-            if (slowTimer > 0) { ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.strokeStyle = 'cyan'; ctx.lineWidth=4; ctx.stroke(); }
-            if (player.isDashing) { ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill(); }
-
-            const tilt = player.vx * 0.1;
-            ctx.rotate(tilt);
-
-            ctx.fillStyle = player.color;
-            ctx.beginPath(); ctx.arc(-12, -12, 8, 0, Math.PI*2); ctx.arc(12, -12, 8, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = (player.color === '#00cc44') ? '#00aa33' : '#DDD';
-            ctx.beginPath(); ctx.ellipse(0, 5, 8, 6, 0, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = (player.color === '#00cc44') ? '#004400' : '#111';
-            ctx.beginPath(); ctx.arc(0, 3, 3, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'white';
-            ctx.beginPath(); ctx.arc(-6, -4, 5, 0, Math.PI*2); ctx.arc(6, -4, 5, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'black';
-            ctx.beginPath(); ctx.arc(-6, -4, 2, 0, Math.PI*2); ctx.arc(6, -4, 2, 0, Math.PI*2); ctx.fill();
-            ctx.restore();
-            
-            floatTexts.forEach(f => {
-                ctx.font = 'bold 12px Arial'; ctx.fillStyle = f.color;
-                ctx.globalAlpha = f.life / 60; ctx.fillText(f.text, f.x, f.y); ctx.globalAlpha = 1;
-            });
-            
-            if (multiplierTimer > 0) {
-                 ctx.font = '20px "Press Start 2P"'; ctx.fillStyle = '#FFD700'; ctx.textAlign = 'center'; ctx.fillText('SCORE X2!', canvas.width/2, 50);
-            }
-            if (slowTimer > 0) {
-                 ctx.font = '20px "Press Start 2P"'; ctx.fillStyle = '#00FFFF'; ctx.textAlign = 'center'; ctx.fillText('FREEZE SMASH!', canvas.width/2, 80);
+                document.getElementById('death-reason').innerText = reason;
+                document.getElementById('final-score').innerText = this.score;
+                this.ui.screens.gameOver.classList.remove('hidden');
             }
             
-            ctx.restore();
+            unlockSecretVisuals() {
+                const el = document.getElementById('secret-bear-option');
+                el.classList.remove('locked');
+                el.querySelector('.bear-name').innerText = 'GOLD';
+            }
+
+            addScore(pts) {
+                const comboBonus = 1 + (this.combo * 0.1);
+                this.score += Math.floor(pts * this.multiplier * comboBonus);
+                this.ui.score.innerText = this.score;
+            }
+
+            update() {
+                if(this.isPaused) return;
+                this.frames++;
+                
+                if (this.multiplierTimer > 0) { this.multiplierTimer--; if(this.multiplierTimer===0) this.multiplier = 1; }
+                if (this.slowTimer > 0) this.slowTimer--;
+                if (this.slowCooldown > 0) this.slowCooldown--;
+                if (this.combo > 0) {
+                    this.comboTimer--;
+                    if(this.comboTimer <= 0) { this.combo = 0; this.ui.combo.innerText = ""; }
+                }
+
+                if (this.shake > 0) this.shake *= 0.9;
+                if (this.shake < 0.5) this.shake = 0;
+
+                this.player.update(this.input);
+
+                if(!this.godMode) {
+                    this.energy -= CONFIG.GAME.ENERGY_DRAIN;
+                    if(this.energy <= 0) this.gameOver("Fell asleep standing up...");
+                    this.ui.energy.style.width = Math.max(0, this.energy) + '%';
+                    if(this.energy < 25) { 
+                        this.ui.energy.classList.add('critical'); 
+                        document.querySelector('.energy-label').style.color = '#ff0000';
+                    } else { 
+                        this.ui.energy.classList.remove('critical');
+                        document.querySelector('.energy-label').style.color = '#ffff00';
+                    }
+                }
+
+                this.spawner.update();
+
+                this.drinks.forEach((d, i) => {
+                    d.update();
+                    if(Utils.dist(this.player.x, this.player.y, d.x, d.y) < this.player.radius + d.size) {
+                        this.collectDrink(d);
+                        this.drinks.splice(i, 1);
+                    } else if (d.life <= 0) this.drinks.splice(i, 1);
+                });
+
+                this.enemies.forEach((e, i) => {
+                    e.update(this.player.x, this.player.y);
+                    if(Utils.dist(this.player.x, this.player.y, e.x, e.y) < this.player.radius + e.size - 5) {
+                        this.hitEnemy(e, i);
+                    }
+                });
+            }
+
+            collectDrink(d) {
+                this.combo++;
+                this.comboTimer = 120;
+                this.ui.combo.innerText = `COMBO x${this.combo}!`;
+                this.particles.addFloat(d.x, d.y, `x${this.combo}`, '#fff');
+
+                if (d.type === 'shield') {
+                    this.player.shield += 3;
+                    this.particles.burst(d.x, d.y, 'cyan', 15);
+                } else if (d.type === 'mega') {
+                    this.particles.addShockwave(d.x, d.y);
+                    this.enemies.forEach(e => { this.particles.burst(e.x, e.y, 'red'); this.addScore(50); });
+                    this.enemies = [];
+                } else if (d.type === 'multiplier') {
+                    this.multiplier = 2; this.multiplierTimer = 300;
+                    this.particles.burst(d.x, d.y, 'gold');
+                    this.particles.addFloat(d.x, d.y, "X2 SCORE", "gold");
+                } else if (d.type === 'slow') {
+                    this.slowTimer = 900; this.slowCooldown = 4500;
+                    this.particles.burst(d.x, d.y, 'cyan');
+                } else {
+                    this.energy = Math.min(100, this.energy + 20);
+                    this.particles.burst(d.x, d.y, 'yellow', 10);
+                }
+                this.addScore(50);
+            }
+
+            hitEnemy(e, index) {
+                if (this.player.isDashing || this.godMode) {
+                    this.particles.burst(e.x, e.y, 'orange', 15);
+                    this.particles.addFloat(e.x, e.y, "SMASH!", "orange");
+                    this.enemies.splice(index, 1);
+                    this.shake = 10;
+                    this.addScore(100);
+                } else if (this.player.shield > 0) {
+                    this.player.shield--;
+                    this.particles.burst(e.x, e.y, 'cyan', 10);
+                    this.enemies.splice(index, 1);
+                } else if (this.slowTimer > 0) {
+                     this.particles.burst(e.x, e.y, 'cyan', 10);
+                     this.enemies.splice(index, 1);
+                } else {
+                    this.gameOver(this.player.color === '#8B4513' ? "Master caught you!" : "Parent caught you!");
+                }
+            }
+
+            draw() {
+                this.ctx.save();
+                if(this.shake > 0) this.ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
+                
+                this.ctx.fillStyle = '#1a1a1a';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+
+                if (this.isPlaying) {
+                    this.particles.updateAndDraw(this.ctx); 
+                    this.drinks.forEach(d => d.draw(this.ctx));
+                    this.enemies.forEach(e => e.draw(this.ctx, this.player.x));
+                    this.player.draw(this.ctx);
+
+                    if(this.multiplier > 1) {
+                         this.ctx.font = '20px "Press Start 2P"'; this.ctx.fillStyle = 'gold'; 
+                         this.ctx.textAlign='center'; this.ctx.fillText("SCORE X2", this.width/2, 50);
+                    }
+                    if(this.slowTimer > 0) {
+                         this.ctx.font = '20px "Press Start 2P"'; this.ctx.fillStyle = 'cyan'; 
+                         this.ctx.textAlign='center'; this.ctx.fillText("FREEZE", this.width/2, 80);
+                    }
+
+                } else {
+                    // Menu Background FX - RESTORED FLOATING PARTICLES
+                    if(this.frames % 20 === 0) this.particles.add(Math.random()*this.width, this.height+10, '#333');
+                    this.particles.list.forEach(p => { 
+                        p.y-=1; 
+                        this.ctx.fillStyle = 'rgba(50,50,50,0.5)'; this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); this.ctx.fill(); 
+                    });
+                    
+                    this.player.x = this.width/2; 
+                    this.player.y = this.height/2 + Math.sin(this.frames*0.05)*5;
+                    this.player.draw(this.ctx);
+                }
+                
+                this.ctx.restore();
+            }
+
+            loop() {
+                if(this.isPlaying) this.update();
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+
+            toggleDevMode() {
+                this.devMode = !this.devMode;
+                this.godMode = this.devMode;
+                this.ui.dev.style.display = this.devMode ? 'block' : 'none';
+                this.ui.dev.innerText = `DEV MODE | GOD: ${this.godMode}`;
+            }
+            toggleGodMode() {
+                this.godMode = !this.godMode;
+                if(this.devMode) this.ui.dev.innerText = `DEV MODE | GOD: ${this.godMode}`;
+            }
         }
 
-        // --- ANIMATION LOOP ---
-        function animate() {
-            frames++; // Always increment frames for animations
-            
-            if (isPlaying && !isPaused) {
-                update();
-                draw();
-            } else if (!isPlaying) {
-                // Draw Menu Background
-                drawMenuBackground();
-            }
-            
-            requestAnimationFrame(animate);
-        }
-
-        // --- BUTTON BINDINGS ---
-        startBtn.addEventListener('click', resetGame);
-        restartBtn.addEventListener('click', resetGame);
-        pauseBtn.addEventListener('click', togglePause);
-        resumeBtn.addEventListener('click', togglePause);
-        quitBtn.addEventListener('click', quitToMenu);
-        goMenuBtn.addEventListener('click', quitToMenu);
-
-        // Start Loop immediately to show menu bg
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        animate();
+        // --- INIT ---
+        window.onload = () => new Game();
+        window.onresize = () => Game.instance && Game.instance.resize();
 
     </script>
 </body>
